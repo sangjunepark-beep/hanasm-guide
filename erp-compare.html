@@ -28,6 +28,23 @@
  input.dec.final{background:#f4fbf4;border-color:#bcd4bc;}
  input.dec.final:focus{border-color:#3a7a3a;box-shadow:0 0 0 2px rgba(58,122,58,.15);}
  input.dec[data-saved="1"]{border-color:#3a7a3a;}
+ .notes{background:#fafbfc;border:1px solid #d8dee8;border-radius:8px;padding:14px 16px;margin:10px 0 24px;}
+ .notes h3{margin:0 0 10px;color:#1f3a5f;font-size:14.5px;display:flex;align-items:center;gap:6px;}
+ .notes h3 .badge{background:#2c5b9c;color:#fff;font-size:11px;padding:1px 7px;border-radius:10px;font-weight:600;}
+ .notes .entries{max-height:260px;overflow-y:auto;margin-bottom:10px;}
+ .notes .entry{background:#fff;border:1px solid #e5e9ef;border-radius:5px;padding:7px 11px;margin:5px 0;font-size:13px;line-height:1.5;}
+ .notes .entry .meta{color:#666;font-size:11.5px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center;}
+ .notes .entry .meta b{color:#2c5b9c;}
+ .notes .entry .text{color:#222;white-space:pre-wrap;word-break:break-word;}
+ .notes .entry .del{background:none;border:0;color:#c44;cursor:pointer;font-size:11px;padding:0 4px;}
+ .notes .entry .del:hover{text-decoration:underline;}
+ .notes .empty{color:#999;font-size:12.5px;padding:8px 4px;text-align:center;font-style:italic;}
+ .notes .add{display:flex;gap:8px;align-items:flex-start;}
+ .notes .add textarea{flex:1;min-height:34px;max-height:240px;border:1px solid #c8d4e0;border-radius:4px;padding:6px 9px;font-family:inherit;font-size:13px;resize:vertical;background:#fffef5;line-height:1.5;}
+ .notes .add textarea:focus{outline:none;border-color:#2c5b9c;background:#fff;box-shadow:0 0 0 2px rgba(44,91,156,.12);}
+ .notes .add button{padding:8px 16px;background:#2c5b9c;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:13px;white-space:nowrap;height:fit-content;align-self:flex-start;}
+ .notes .add button:hover{background:#1f3a5f;}
+ .notes .add button:disabled{background:#bbb;cursor:not-allowed;}
  .toolbar{position:sticky;top:0;background:#fff;padding:10px 0;border-bottom:1px solid #d8dee8;display:flex;gap:8px;align-items:center;z-index:10;}
  .toolbar button{padding:7px 14px;background:#2c5b9c;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:13px;}
  .toolbar button.sec{background:#888;}
@@ -69,6 +86,14 @@
 <tr class="warn"><td>2공장</td><td>(공장-비장비)</td><td><input class="dec" data-key="machine::2공장" data-field="draft" data-group="machine" data-erp="2공장" placeholder="1차 수정안"></td><td><input class="dec final" data-key="machine::2공장" data-field="final" data-group="machine" data-erp="2공장" placeholder="최종 협의안"></td></tr>
 <tr class="warn"><td>DTF출력기</td><td>(가이드 없음)</td><td><input class="dec" data-key="machine::DTF출력기" data-field="draft" data-group="machine" data-erp="DTF출력기" placeholder="1차 수정안"></td><td><input class="dec final" data-key="machine::DTF출력기" data-field="final" data-group="machine" data-erp="DTF출력기" placeholder="최종 협의안"></td></tr>
 </table>
+<div class="notes" data-section="machine">
+ <h3>📝 1. 사용장비 — 비고 / 협의 기록 <span class="badge n">0</span></h3>
+ <div class="entries"></div>
+ <div class="add">
+  <textarea placeholder="이 섹션 관련 협의 내용 입력 (편집자 선택 필수)"></textarea>
+  <button>추가</button>
+ </div>
+</div>
 
 <h2>2. 공정 (StageJus — 인쇄·재단 공정)</h2>
 <p class="lead">ERP 공정 드롭다운 상위 15개(외주업체명 제외) — 인쇄/재단 공정 매핑.</p>
@@ -91,6 +116,14 @@
 <tr class="warn"><td>DTF스티커</td><td>(가이드 없음)</td><td><input class="dec" data-key="stage::DTF스티커" data-field="draft" data-group="stage" data-erp="DTF스티커" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::DTF스티커" data-field="final" data-group="stage" data-erp="DTF스티커" placeholder="최종 협의안"></td></tr>
 </table>
 <div class="factory"><b>외주업체·공장 (StageJus 16번~)</b> — 가이드 비교 대상 아님: 본사, 2공장, 해광, 진성, 대일, 아프로액자, 아론, 성원애드피아, 청룡명찰, 실사박사, 동광몰, 돌타월닷컴, 제일금속, 아이작, 와우프레스, 신창안전유리, 검단레이저, 아트사인, 엘림, 애드몰, 광일플라스틱, 유니매트, 인쇄마을, 신애드, 유진애드, 아론/유진애드, 실사박사/신애드, 배면UV인쇄</div>
+<div class="notes" data-section="stage">
+ <h3>📝 2. 공정 — 비고 / 협의 기록 <span class="badge n">0</span></h3>
+ <div class="entries"></div>
+ <div class="add">
+  <textarea placeholder="이 섹션 관련 협의 내용 입력 (편집자 선택 필수)"></textarea>
+  <button>추가</button>
+ </div>
+</div>
 
 <h2>3. 재질 (Material)</h2>
 <p class="lead">ERP 재질 마스터 64종 vs 가이드 자재 종합표 — 핵심 매핑.</p>
@@ -161,6 +194,14 @@
 <tr class="oos"><td>수목표찰스프링</td><td>[부자재]</td><td><input class="dec" data-key="material::수목표찰스프링" data-field="draft" data-group="material" data-erp="수목표찰스프링" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::수목표찰스프링" data-field="final" data-group="material" data-erp="수목표찰스프링" placeholder="최종 협의안"></td></tr>
 <tr class="ok"><td>아크릴3T</td><td>아크릴(3T)</td><td><input class="dec" data-key="material::아크릴3T" data-field="draft" data-group="material" data-erp="아크릴3T" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::아크릴3T" data-field="final" data-group="material" data-erp="아크릴3T" placeholder="최종 협의안"></td></tr>
 </table>
+<div class="notes" data-section="material">
+ <h3>📝 3. 재질 — 비고 / 협의 기록 <span class="badge n">0</span></h3>
+ <div class="entries"></div>
+ <div class="add">
+  <textarea placeholder="이 섹션 관련 협의 내용 입력 (편집자 선택 필수)"></textarea>
+  <button>추가</button>
+ </div>
+</div>
 
 <h2>4. 가이드엔 있는데 ERP에 없는 자재 (보완 후보)</h2>
 <div class="miss"><b>14건</b> — 표준화 시 ERP 마스터에 추가 고려:<br>압출판 · 로마크 · 초고휘도 · 프리즘 · 부직포 · 텐트천 · 메쉬 · PE망사 · 합성지 · 합성비점착 · 랩핑 · 엠보 · 옥외용시트 · 옥내용시트</div>
@@ -185,7 +226,7 @@
 </ul></div></div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot, serverTimestamp, deleteDoc, deleteField, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot, serverTimestamp, deleteDoc, deleteField, getDocs, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDLguJj7s8KZa6yAH80w-bOvduc3WR5Oss",
@@ -266,8 +307,65 @@ function init(){
     document.getElementById('cnt').textContent = `1차 ${drafts} · 최종 ${finals}`;
   }, err=>{ tick('⚠️ 동기화실패: '+err.code); });
 
+  // 비고 영역
+  document.querySelectorAll('.notes').forEach(box=>{
+    const section = box.dataset.section;
+    const ta = box.querySelector('textarea');
+    const btn = box.querySelector('button');
+    // textarea auto-resize
+    ta.addEventListener('input', ()=>{
+      ta.style.height='auto';
+      ta.style.height = Math.min(240, ta.scrollHeight) + 'px';
+    });
+    ta.addEventListener('keydown', e=>{
+      if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){ e.preventDefault(); btn.click(); }
+    });
+    btn.addEventListener('click', async ()=>{
+      const editor = getEditor();
+      if(!editor){ alert('편집자를 먼저 선택해주세요.'); document.getElementById('editor').focus(); return; }
+      const text = ta.value.trim();
+      if(!text) return;
+      btn.disabled = true;
+      try{
+        await addDoc(collection(db, 'erp_notes', section, 'entries'), {
+          editor, text, ts: serverTimestamp()
+        });
+        ta.value=''; ta.style.height='auto';
+        tick('☁️ 비고 추가됨 ('+section+')');
+      }catch(e){ tick('⚠️ 비고 저장실패: '+e.code); console.error(e); }
+      finally{ btn.disabled = false; }
+    });
+    // 구독
+    const q = query(collection(db, 'erp_notes', section, 'entries'), orderBy('ts','asc'));
+    onSnapshot(q, snap=>{
+      const wrap = box.querySelector('.entries');
+      if(snap.empty){
+        wrap.innerHTML = '<div class="empty">아직 비고가 없습니다. 첫 의견을 남겨주세요.</div>';
+      } else {
+        wrap.innerHTML = '';
+        snap.forEach(d=>{
+          const x = d.data();
+          const dt = x.ts?.toDate?.();
+          const stamp = dt ? `${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}` : '저장 중…';
+          const div = document.createElement('div');
+          div.className='entry';
+          div.innerHTML = `<div class="meta"><span>[${stamp}] <b>${escapeHtml(x.editor||'')}</b></span><button class="del" title="삭제">✕</button></div><div class="text">${escapeHtml(x.text||'')}</div>`;
+          div.querySelector('.del').addEventListener('click', async ()=>{
+            if(!confirm('이 비고를 삭제할까요?')) return;
+            try{ await deleteDoc(doc(db, 'erp_notes', section, 'entries', d.id)); }
+            catch(e){ tick('⚠️ 삭제실패: '+e.code); }
+          });
+          wrap.appendChild(div);
+        });
+        wrap.scrollTop = wrap.scrollHeight;
+      }
+      box.querySelector('.badge').textContent = snap.size;
+    });
+  });
+
   tick('☁️ Firebase 연결됨');
 }
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 window.exportCSV = async function(){
   const snap = await getDocs(collection(db, COL));
