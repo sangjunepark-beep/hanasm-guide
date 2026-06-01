@@ -1,0 +1,162 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<title>ERP ↔ 가이드 v2 용어 비교</title>
+<style>
+ body{font-family:"Malgun Gothic",sans-serif;color:#222;background:#eef1f5;margin:0;}
+ .wrap{max-width:1100px;margin:0 auto;background:#fff;padding:0 0 40px;}
+ header{background:linear-gradient(135deg,#1f3a5f,#2c5b9c);color:#fff;padding:34px 42px;}
+ header h1{margin:0;font-size:26px;}
+ header .sub{font-size:14px;opacity:.9;margin-top:6px;}
+ .body{padding:24px 42px;}
+ h2{font-size:19px;color:#1f3a5f;border-left:5px solid #2c5b9c;padding-left:10px;margin:30px 0 10px;}
+ p.lead{color:#555;font-size:13.5px;margin:4px 0 12px;}
+ table{width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:13.5px;}
+ th,td{border:1px solid #d8dee8;padding:7px 10px;text-align:left;vertical-align:top;}
+ th{background:#1f3a5f;color:#fff;}
+ tr.ok td{background:#f4faf4;}
+ tr.warn td{background:#fff4e5;}
+ tr.oos td{background:#f0f0f0;color:#777;}
+ .stat{display:flex;gap:10px;margin:6px 0 14px;font-size:13px;}
+ .stat span{padding:3px 10px;border-radius:4px;}
+ .stat .ok{background:#cfe8d2;}
+ .stat .warn{background:#ffe0b2;}
+ .stat .oos{background:#e0e0e0;color:#555;}
+ .miss{background:#fff4e5;border:1px solid #e8a13a;border-radius:6px;padding:12px 16px;font-size:13.5px;margin:12px 0;}
+ .factory{font-size:12.5px;color:#666;background:#f7f7f7;border-radius:6px;padding:10px 14px;margin:10px 0;}
+</style></head><body><div class="wrap">
+<header><h1>ERP ↔ 통합 가이드 v2 용어 비교</h1>
+<div class="sub">출처: erp.hanasm.kr/AdminManager/GsItemList.php 드롭다운 마스터 vs 통합 가이드 v2 (코드 제외판) · 2026-06-01</div></header>
+<div class="body">
+
+<h2>1. 사용장비 (Machine)</h2>
+<p class="lead">ERP 12종 vs 가이드 8장비 — 매핑 결과.</p>
+<div class="stat"><span class="ok">표준 매핑 OK 7</span><span class="warn">가이드 누락 5</span><span class="oos">비장비/외주 0</span></div>
+<table><tr><th style="width:30%">ERP 명칭</th><th>가이드 표준명</th></tr>
+<tr class="ok"><td>UV출력기</td><td>UV 평판</td></tr>
+<tr class="ok"><td>준드</td><td>ZUND(평판컷팅기)</td></tr>
+<tr class="ok"><td>솔벤출력기</td><td>솔벤트 프린터</td></tr>
+<tr class="warn"><td>런스롤러</td><td>(가이드 없음)</td></tr>
+<tr class="ok"><td>수성출력</td><td>수성 프린터</td></tr>
+<tr class="ok"><td>라텍스출력</td><td>라텍스</td></tr>
+<tr class="ok"><td>레이저</td><td>레이저(아크릴컷팅기)</td></tr>
+<tr class="warn"><td>시나젯</td><td>(가이드 없음)</td></tr>
+<tr class="ok"><td>슈마재단</td><td>슈마(시트컷팅기)</td></tr>
+<tr class="warn"><td>본사</td><td>(공장-비장비)</td></tr>
+<tr class="warn"><td>2공장</td><td>(공장-비장비)</td></tr>
+<tr class="warn"><td>DTF출력기</td><td>(가이드 없음)</td></tr>
+</table>
+
+<h2>2. 공정 (StageJus — 인쇄·재단 공정)</h2>
+<p class="lead">ERP 공정 드롭다운 상위 15개(외주업체명 제외) — 인쇄/재단 공정 매핑.</p>
+<div class="stat"><span class="ok">표준 매핑 OK 8</span><span class="warn">가이드 누락 7</span><span class="oos">비공정/공장 0</span></div>
+<table><tr><th style="width:30%">ERP 명칭</th><th>가이드 표준명</th></tr>
+<tr class="ok"><td>UV인쇄</td><td>UV평판 직인쇄</td></tr>
+<tr class="ok"><td>준드재단</td><td>ZUND 라우터·V컷</td></tr>
+<tr class="warn"><td>포장</td><td>(공정-비인쇄)</td></tr>
+<tr class="ok"><td>솔벤인쇄</td><td>솔벤트 인쇄</td></tr>
+<tr class="ok"><td>후가공</td><td>코팅·후가공</td></tr>
+<tr class="warn"><td>외주발주</td><td>(외부)</td></tr>
+<tr class="ok"><td>라텍스출력</td><td>라텍스 인쇄</td></tr>
+<tr class="warn"><td>재고포장</td><td>(공정-비인쇄)</td></tr>
+<tr class="warn"><td>시나젯재단</td><td>(가이드 없음)</td></tr>
+<tr class="ok"><td>수성출력</td><td>수성 인쇄</td></tr>
+<tr class="ok"><td>레이저재단</td><td>레이저 컷팅·음각</td></tr>
+<tr class="ok"><td>슈마재단</td><td>슈마 컷팅</td></tr>
+<tr class="warn"><td>본사</td><td>(공장)</td></tr>
+<tr class="warn"><td>2공장</td><td>(공장)</td></tr>
+<tr class="warn"><td>DTF스티커</td><td>(가이드 없음)</td></tr>
+</table>
+<div class="factory"><b>외주업체·공장 (StageJus 16번~)</b> — 가이드 비교 대상 아님: 본사, 2공장, 해광, 진성, 대일, 아프로액자, 아론, 성원애드피아, 청룡명찰, 실사박사, 동광몰, 돌타월닷컴, 제일금속, 아이작, 와우프레스, 신창안전유리, 검단레이저, 아트사인, 엘림, 애드몰, 광일플라스틱, 유니매트, 인쇄마을, 신애드, 유진애드, 아론/유진애드, 실사박사/신애드, 배면UV인쇄</div>
+
+<h2>3. 재질 (Material)</h2>
+<p class="lead">ERP 재질 마스터 64종 vs 가이드 자재 종합표 — 핵심 매핑.</p>
+<div class="stat"><span class="ok">표준 매핑 OK 36</span><span class="warn">가이드 누락 10</span><span class="oos">범위 외(금속·부자재) 18</span></div>
+<table><tr><th style="width:26%">ERP 명칭</th><th>가이드 표준명 / 비고</th></tr>
+<tr class="ok"><td>포맥스3T</td><td>포맥스(두께 3T)</td></tr>
+<tr class="ok"><td>아크릴10T</td><td>아크릴(10T)</td></tr>
+<tr class="warn"><td>강화유리포켓</td><td>(가이드 없음, 게시판 부품)</td></tr>
+<tr class="ok"><td>고휘도반사지</td><td>프리즘형/고휘도 반사시트</td></tr>
+<tr class="ok"><td>금속특수시트</td><td>금속특수시트(알루미늄 논슬립)</td></tr>
+<tr class="ok"><td>금속판</td><td>알루미늄 복합판넬(또는 금속판)</td></tr>
+<tr class="ok"><td>라텍스켈</td><td>캘그레이/캘 시트(랩핑계)</td></tr>
+<tr class="ok"><td>레드포맥스5T</td><td>포맥스(레드 5T)</td></tr>
+<tr class="ok"><td>리무벌시트</td><td>리무버(라텍스 점착군)</td></tr>
+<tr class="ok"><td>메탈표찰</td><td>로마크판/메탈 명판</td></tr>
+<tr class="oos"><td>무지</td><td>[옵션-디자인없음]</td></tr>
+<tr class="ok"><td>일반반사지</td><td>솔벤반사 백색(일반)</td></tr>
+<tr class="ok"><td>아크릴2T</td><td>아크릴(두께 2T)</td></tr>
+<tr class="ok"><td>아크릴5T</td><td>아크릴(5T)</td></tr>
+<tr class="warn"><td>아트지-강력접착</td><td>(미매핑)</td></tr>
+<tr class="warn"><td>아트지-일반접착</td><td>(미매핑)</td></tr>
+<tr class="warn"><td>여닫이안내판</td><td>(완제품-비자재)</td></tr>
+<tr class="warn"><td>유포지</td><td>(가이드 없음, 합성지 계열)</td></tr>
+<tr class="ok"><td>자석0.8T</td><td>자석(0.8T)</td></tr>
+<tr class="ok"><td>축광시트</td><td>솔벤 축광</td></tr>
+<tr class="ok"><td>투명시트</td><td>투명PVC/고투명</td></tr>
+<tr class="ok"><td>폴리카보네이트</td><td>PC(폴리카보네이트)</td></tr>
+<tr class="warn"><td>패브릭시트</td><td>(가이드 없음)</td></tr>
+<tr class="ok"><td>패트0.5T</td><td>패트(PET, 0.5T)</td></tr>
+<tr class="ok"><td>포맥스1T</td><td>포맥스(두께 1T)</td></tr>
+<tr class="ok"><td>포맥스2T</td><td>포맥스(두께 2T)</td></tr>
+<tr class="ok"><td>포맥스5T</td><td>포맥스(두께 5T)</td></tr>
+<tr class="ok"><td>포마트10T</td><td>포맥스(=포마트 10T 표기 통일 필요)</td></tr>
+<tr class="ok"><td>플렉스</td><td>플렉스(솔벤군)</td></tr>
+<tr class="warn"><td>항균필름</td><td>(가이드 없음)</td></tr>
+<tr class="warn"><td>헤어라인시트</td><td>(가이드 없음, 럭셔리 자재)</td></tr>
+<tr class="ok"><td>현수막천</td><td>현수막천</td></tr>
+<tr class="ok"><td>홀로그램시트</td><td>홀로그램 배면접착(코팅재 분류)</td></tr>
+<tr class="warn"><td>화이트보드시트</td><td>(가이드 없음)</td></tr>
+<tr class="ok"><td>화이트시트</td><td>화이트시트</td></tr>
+<tr class="oos"><td>와이어 1SET</td><td>[부자재]</td></tr>
+<tr class="oos"><td>다보4개</td><td>[부자재]</td></tr>
+<tr class="oos"><td>종이다리</td><td>[부자재]</td></tr>
+<tr class="oos"><td>큐방</td><td>[부자재]</td></tr>
+<tr class="ok"><td>미끄럼방지시트</td><td>미끄럼방지시트</td></tr>
+<tr class="ok"><td>안개시트</td><td>울트라 엠보(에칭) 계열</td></tr>
+<tr class="oos"><td>알루미늄</td><td>[가이드 범위 외 - 금속 원재]</td></tr>
+<tr class="ok"><td>MDF합판</td><td>목재(MDF)</td></tr>
+<tr class="oos"><td>스텐304</td><td>[가이드 범위 외 - 금속]</td></tr>
+<tr class="oos"><td>스텐201</td><td>[가이드 범위 외 - 금속]</td></tr>
+<tr class="oos"><td>HDPE</td><td>[가이드 범위 외 - 사출]</td></tr>
+<tr class="oos"><td>스틸</td><td>[가이드 범위 외 - 금속]</td></tr>
+<tr class="oos"><td>PE</td><td>[가이드 범위 외 - 사출]</td></tr>
+<tr class="ok"><td>우드</td><td>목재(원목)</td></tr>
+<tr class="ok"><td>반사지</td><td>반사시트(공통)</td></tr>
+<tr class="ok"><td>패트배너지</td><td>PET천(현수막군)</td></tr>
+<tr class="ok"><td>현수막</td><td>현수막천(약식)</td></tr>
+<tr class="ok"><td>우드,몰딩</td><td>목재(우드+몰딩)</td></tr>
+<tr class="oos"><td>철제+도장</td><td>[가이드 범위 외 - 금속도장]</td></tr>
+<tr class="oos"><td>각파이프</td><td>[가이드 범위 외 - 금속]</td></tr>
+<tr class="ok"><td>아크릴포켓</td><td>아크릴(포켓 가공물)</td></tr>
+<tr class="warn"><td>강화유리판3T</td><td>(가이드 없음)</td></tr>
+<tr class="oos"><td>ABS</td><td>[가이드 범위 외 - 사출 잡화]</td></tr>
+<tr class="oos"><td>LDPE</td><td>[가이드 범위 외 - 사출]</td></tr>
+<tr class="ok"><td>화이트시트-강접</td><td>무광 강접(=화이트강접)</td></tr>
+<tr class="oos"><td>다보다리</td><td>[부자재]</td></tr>
+<tr class="oos"><td>모듈</td><td>[부자재/모듈]</td></tr>
+<tr class="oos"><td>수목표찰스프링</td><td>[부자재]</td></tr>
+<tr class="ok"><td>아크릴3T</td><td>아크릴(3T)</td></tr>
+</table>
+
+<h2>4. 가이드엔 있는데 ERP에 없는 자재 (보완 후보)</h2>
+<div class="miss"><b>14건</b> — 표준화 시 ERP 마스터에 추가 고려:<br>압출판 · 로마크 · 초고휘도 · 프리즘 · 부직포 · 텐트천 · 메쉬 · PE망사 · 합성지 · 합성비점착 · 랩핑 · 엠보 · 옥외용시트 · 옥내용시트</div>
+
+<h2>5. 주요 불일치 5가지 (용어 통일 필요)</h2>
+<table><tr><th style="width:18%">분류</th><th style="width:30%">ERP 표기</th><th style="width:30%">가이드 표기</th><th>제안</th></tr>
+<tr><td>장비</td><td>준드</td><td>ZUND(평판컷팅기)</td><td>표준명 "ZUND" 채택, ERP "준드" → "ZUND" 변경 또는 별칭 등록</td></tr>
+<tr><td>장비</td><td>UV출력기</td><td>UV 평판</td><td>"UV 평판"으로 통일(인쇄 방식 명시)</td></tr>
+<tr><td>공정</td><td>UV인쇄 / 솔벤인쇄 / 수성출력 / 라텍스출력</td><td>UV평판 / 솔벤트 / 수성 / 라텍스</td><td>"출력 vs 인쇄" 용어 혼용 → "인쇄"로 통일</td></tr>
+<tr><td>자재</td><td>포맥스1T·2T·3T·5T (4종 분리)</td><td>포맥스 (두께 옵션)</td><td>마스터는 "포맥스"로 두고 두께를 별도 필드로 분리 권장</td></tr>
+<tr><td>자재</td><td>포마트10T</td><td>(미정의)</td><td>포맥스 오타로 추정 — "포맥스10T"로 통일 검토</td></tr>
+<tr><td>자재</td><td>라텍스켈</td><td>캘그레이/캘 시트(랩핑)</td><td>"라텍스"는 인쇄장비명, "캘"은 시트류 — 명칭 충돌 정리</td></tr>
+</table>
+
+<h2>6. 정리</h2>
+<ul>
+ <li><b>장비/공정은 대체로 일치</b> — 명칭만 다름(준드↔ZUND, 출력↔인쇄). 별칭 매핑표로 해결 가능.</li>
+ <li><b>가이드 누락 (DTF·시나젯·런스롤러)</b> — ERP에는 있는데 가이드엔 없음. 가이드 보강 검토.</li>
+ <li><b>ERP 누락 (압출판·로마크판·초고휘도·메쉬 등)</b> — 가이드는 다루는데 ERP 마스터에 없음. 마스터 보강.</li>
+ <li><b>두께·옵션 분리</b> — 포맥스1T~5T처럼 자재명+두께를 같은 셀에 둠. 표준화 시 자재명/두께 필드 분리 권장.</li>
+ <li><b>비인쇄 자재(스텐·HDPE·ABS 등)</b>는 가이드 범위 외 — ERP 운영에는 유지하되 가이드와 분리.</li>
+</ul>
+
+</div></div></body></html>
