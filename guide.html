@@ -32,7 +32,35 @@
  .toc{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:16px 22px;margin:24px 0;}
  .toc ol{margin:6px 0;padding-left:22px;columns:2;font-size:13.5px;}
  footer{border-top:2px solid var(--navy);margin-top:30px;padding:16px 48px;font-size:12.5px;color:#666;display:flex;justify-content:space-between;}
- @media print{body{background:#fff;}.wrap{max-width:none;}h2{break-after:avoid;}table{break-inside:avoid;}}
+ 
+  @media (max-width:760px){
+    body{background:#fff;}
+    .wrap{max-width:none;}
+    header.cover{padding:24px 20px 22px;}
+    header.cover h1{font-size:22px;}
+    header.cover .sub{font-size:13px;}
+    header.cover .meta{font-size:12px;}
+    .body{padding:18px 14px;}
+    h2{font-size:17px;margin:24px 0 10px;padding:5px 0 5px 10px;border-left-width:4px;}
+    h3{font-size:14.5px;margin:18px 0 6px;}
+    p.lead{font-size:13px;}
+    table{font-size:12.5px;display:block;overflow-x:auto;white-space:nowrap;}
+    table th, table td{padding:6px 8px;}
+    .toc{padding:12px 16px;}
+    .toc ol{columns:1;font-size:13px;padding-left:18px;}
+    .grid4{flex-direction:column;}
+    .card{flex:1 1 auto;}
+    .warn{padding:9px 12px;font-size:13px;}
+    footer{flex-direction:column;gap:6px;padding:12px 14px;font-size:12px;}
+  }
+  /* 자동 치환된 부분 표시 */
+  .term-final{color:#1d6b1d;background:linear-gradient(transparent 60%, rgba(58,122,58,.22) 60%);padding:0 2px;border-radius:2px;cursor:help;}
+  .term-final::after{content:" ✓";font-size:11px;color:#3a7a3a;font-weight:bold;}
+  .live-badge{position:fixed;bottom:14px;right:14px;background:#1f3a5f;color:#fff;font-size:11.5px;padding:6px 11px;border-radius:14px;box-shadow:0 4px 12px rgba(0,0,0,.18);opacity:0;transition:opacity .25s;z-index:1000;}
+  .live-badge.show{opacity:1;}
+  @media print{.live-badge,.term-final::after{display:none;}}
+
+  @media print{body{background:#fff;}.wrap{max-width:none;}h2{break-after:avoid;}table{break-inside:avoid;}.live-badge{display:none;}}
 </style>
 </head>
 <body>
@@ -312,5 +340,127 @@
  <span>hanasignmall.kr · 1644-7523</span>
 </footer>
 </div>
+<div class="live-badge" id="liveBadge">최종 협의안 0건 반영됨</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDLguJj7s8KZa6yAH80w-bOvduc3WR5Oss",
+  authDomain: "hanasm-chatbot-terms.firebaseapp.com",
+  projectId: "hanasm-chatbot-terms",
+  storageBucket: "hanasm-chatbot-terms.firebasestorage.app",
+  messagingSenderId: "194464904794",
+  appId: "1:194464904794:web:43dfc6c46d281b01000a63"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const META_REGEX = /^\(|\[|미정의|가이드 없음|범위 외|미매핑|미장비|공장|외부|부자재|옵션|완제품/;
+
+function escapeRegex(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+
+// 가이드 본문에서 매칭할 텍스트 노드 모음 (한 번만 캐시)
+let textNodes = null;
+function collectTextNodes(){
+  if(textNodes) return textNodes;
+  const root = document.querySelector('.body');
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(n){
+      if(!n.nodeValue || !n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+      if(n.parentElement.closest('script,style,.live-badge')) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  textNodes = [];
+  let n; while((n=walker.nextNode())) textNodes.push(n);
+  return textNodes;
+}
+
+// 가이드 표준명 핵심 키워드 추출 (괄호 안 부가설명 제거)
+function pickCore(mp){
+  // 예: "ZUND(평판컷팅기)" → "ZUND" / "UV 평판" → "UV 평판"
+  // 메타 라벨(가이드 없음 등) 거름
+  if(!mp) return null;
+  if(META_REGEX.test(mp.trim())) return null;
+  let s = mp.split('/')[0].trim();          // 슬래시 첫 항목
+  s = s.replace(/\s*\([^)]*\)\s*$/,'').trim(); // 끝 괄호 제거
+  return s.length>=2 ? s : null;
+}
+
+function applyReplacements(map){
+  // map: { coreKeyword: finalValue }
+  const nodes = collectTextNodes();
+  let replaced = 0;
+  // 길이 긴 키워드 먼저 (부분 매칭 방지)
+  const keys = Object.keys(map).sort((a,b)=>b.length-a.length);
+  if(!keys.length) return 0;
+  // 이전 치환 복원: 스팬 풀기
+  document.querySelectorAll('.term-final').forEach(sp=>{
+    sp.replaceWith(document.createTextNode(sp.dataset.orig||sp.textContent));
+  });
+  textNodes = null; // 재수집
+  const nodes2 = collectTextNodes();
+  for(const node of nodes2){
+    let text = node.nodeValue;
+    let hit = false;
+    for(const k of keys){
+      if(text.includes(k)){
+        hit = true; break;
+      }
+    }
+    if(!hit) continue;
+    // 매칭된 키들 자리에 span 삽입
+    const frag = document.createDocumentFragment();
+    let remain = text;
+    while(true){
+      let bestK = null, bestI = Infinity;
+      for(const k of keys){
+        const i = remain.indexOf(k);
+        if(i!==-1 && i<bestI){ bestI=i; bestK=k; }
+      }
+      if(!bestK){ frag.appendChild(document.createTextNode(remain)); break; }
+      if(bestI>0) frag.appendChild(document.createTextNode(remain.slice(0,bestI)));
+      const sp = document.createElement('span');
+      sp.className='term-final';
+      sp.textContent = map[bestK];
+      sp.dataset.orig = bestK;
+      sp.title = `최종 협의안: ${map[bestK]}  ←  원문: ${bestK}`;
+      frag.appendChild(sp);
+      replaced++;
+      remain = remain.slice(bestI + bestK.length);
+    }
+    node.parentNode.replaceChild(frag, node);
+  }
+  return replaced;
+}
+
+function showBadge(n){
+  const b = document.getElementById('liveBadge');
+  if(n>0){
+    b.textContent = `최종 협의안 ${n}건 자동 반영됨`;
+    b.classList.add('show');
+  } else {
+    b.classList.remove('show');
+  }
+}
+
+onSnapshot(collection(db, 'erp_terminology'), snap=>{
+  const map = {};
+  snap.forEach(d=>{
+    const x = d.data();
+    if(!x.final || !x.mp) return;
+    const core = pickCore(x.mp);
+    if(!core) return;
+    if(core === x.final) return; // 동일하면 의미 없음
+    // 같은 키에 다른 값들이 오면 마지막것 우선 (순서 무관)
+    map[core] = x.final;
+  });
+  const n = applyReplacements(map);
+  showBadge(Object.keys(map).length);
+  console.log('[guide] 최종 협의안', Object.keys(map).length, '건 / 치환 위치', n, '개소');
+}, err=>{console.error('Firestore 구독 실패', err);});
+</script>
+
 </body>
 </html>
