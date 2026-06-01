@@ -66,6 +66,7 @@
  <h2>편집자를 선택해주세요</h2>
  <div class="sub">입력 내용에 누가 작성했는지 자동 기록됩니다.</div>
  <div class="btns">
+  <button data-name="대표님">대표님</button>
   <button data-name="박상준 차장">박상준 차장</button>
   <button data-name="송기용 팀장">송기용 팀장</button>
   <button data-name="천현정 차장">천현정 차장</button>
@@ -77,6 +78,7 @@
  <label style="font-size:13px;color:#555;">편집자:
   <select id="editor" style="padding:5px 8px;border:1px solid #bcd;border-radius:4px;font-size:13px;margin-right:8px;">
    <option value="">선택</option>
+   <option>대표님</option>
    <option>박상준 차장</option>
    <option>송기용 팀장</option>
    <option>천현정 차장</option>
@@ -224,6 +226,14 @@
 
 <h2>4. 가이드엔 있는데 ERP에 없는 자재 (보완 후보)</h2>
 <div class="miss"><b>14건</b> — 표준화 시 ERP 마스터에 추가 고려:<br>압출판 · 로마크 · 초고휘도 · 프리즘 · 부직포 · 텐트천 · 메쉬 · PE망사 · 합성지 · 합성비점착 · 랩핑 · 엠보 · 옥외용시트 · 옥내용시트</div>
+<div class="notes" data-section="missing">
+ <h3>📝 4. ERP 마스터 보완 — 비고 / 협의 기록 <span class="badge n">0</span></h3>
+ <div class="entries"></div>
+ <div class="add">
+  <textarea placeholder="이 섹션 관련 협의 내용 입력 (편집자 선택 필수)"></textarea>
+  <button>추가</button>
+ </div>
+</div>
 
 <h2>5. 주요 불일치 5가지 (용어 통일 필요)</h2>
 <table><tr><th style="width:18%">분류</th><th style="width:30%">ERP 표기</th><th style="width:30%">가이드 표기</th><th>제안</th></tr>
@@ -234,6 +244,14 @@
 <tr><td>자재</td><td>포마트10T</td><td>(미정의)</td><td>포맥스 오타로 추정 — "포맥스10T"로 통일 검토</td></tr>
 <tr><td>자재</td><td>라텍스켈</td><td>캘그레이/캘 시트(랩핑)</td><td>"라텍스"는 인쇄장비명, "캘"은 시트류 — 명칭 충돌 정리</td></tr>
 </table>
+<div class="notes" data-section="conflict">
+ <h3>📝 5. 주요 불일치 — 비고 / 협의 기록 <span class="badge n">0</span></h3>
+ <div class="entries"></div>
+ <div class="add">
+  <textarea placeholder="이 섹션 관련 협의 내용 입력 (편집자 선택 필수)"></textarea>
+  <button>추가</button>
+ </div>
+</div>
 
 <h2>6. 정리</h2>
 <ul>
