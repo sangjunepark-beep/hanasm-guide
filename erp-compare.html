@@ -10,11 +10,12 @@
  h2{font-size:19px;color:#1f3a5f;border-left:5px solid #2c5b9c;padding-left:10px;margin:30px 0 10px;}
  p.lead{color:#555;font-size:13.5px;margin:4px 0 12px;}
  table{width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:13.5px;}
- th,td{border:1px solid #d8dee8;padding:7px 10px;text-align:left;vertical-align:top;}
- th{background:#1f3a5f;color:#fff;}
+ th,td{border:1px solid #d8dee8;padding:5px 8px;text-align:left;vertical-align:middle;line-height:1.4;}
+ th{background:#1f3a5f;color:#fff;padding:8px 10px;}
  tr.ok td{background:#f4faf4;}
  tr.warn td{background:#fff4e5;}
  tr.oos td{background:#f0f0f0;color:#777;}
+ td:has(input.dec){padding:3px 5px;}
  .stat{display:flex;gap:10px;margin:6px 0 14px;font-size:13px;}
  .stat span{padding:3px 10px;border-radius:4px;}
  .stat .ok{background:#cfe8d2;}
@@ -22,8 +23,11 @@
  .stat .oos{background:#e0e0e0;color:#555;}
  .miss{background:#fff4e5;border:1px solid #e8a13a;border-radius:6px;padding:12px 16px;font-size:13.5px;margin:12px 0;}
  .factory{font-size:12.5px;color:#666;background:#f7f7f7;border-radius:6px;padding:10px 14px;margin:10px 0;}
- input.dec{width:100%;border:1px solid #bcd;border-radius:4px;padding:4px 6px;font-size:13px;font-family:inherit;background:#fffef5;}
- input.dec:focus{outline:none;border-color:#2c5b9c;background:#fff;}
+ input.dec{width:100%;box-sizing:border-box;border:1px solid #c8d4e0;border-radius:3px;padding:3px 6px;font-size:13px;font-family:inherit;background:#fffef5;height:26px;}
+ input.dec:focus{outline:none;border-color:#2c5b9c;background:#fff;box-shadow:0 0 0 2px rgba(44,91,156,.12);}
+ input.dec.final{background:#f4fbf4;border-color:#bcd4bc;}
+ input.dec.final:focus{border-color:#3a7a3a;box-shadow:0 0 0 2px rgba(58,122,58,.15);}
+ input.dec[data-saved="1"]{border-color:#3a7a3a;}
  .toolbar{position:sticky;top:0;background:#fff;padding:10px 0;border-bottom:1px solid #d8dee8;display:flex;gap:8px;align-items:center;z-index:10;}
  .toolbar button{padding:7px 14px;background:#2c5b9c;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:13px;}
  .toolbar button.sec{background:#888;}
@@ -51,111 +55,111 @@
 <h2>1. 사용장비 (Machine)</h2>
 <p class="lead">ERP 12종 vs 가이드 8장비 — 매핑 결과.</p>
 <div class="stat"><span class="ok">표준 매핑 OK 7</span><span class="warn">가이드 누락 5</span><span class="oos">비장비/외주 0</span></div>
-<table><tr><th style="width:22%">ERP 명칭</th><th style="width:38%">가이드 표준명</th><th>최종결정 (직접 입력)</th></tr>
-<tr class="ok"><td>UV출력기</td><td>UV 평판</td><td><input class="dec" data-key="machine::UV출력기" data-group="machine" data-erp="UV출력기" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>준드</td><td>ZUND(평판컷팅기)</td><td><input class="dec" data-key="machine::준드" data-group="machine" data-erp="준드" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>솔벤출력기</td><td>솔벤트 프린터</td><td><input class="dec" data-key="machine::솔벤출력기" data-group="machine" data-erp="솔벤출력기" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>런스롤러</td><td>(가이드 없음)</td><td><input class="dec" data-key="machine::런스롤러" data-group="machine" data-erp="런스롤러" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>수성출력</td><td>수성 프린터</td><td><input class="dec" data-key="machine::수성출력" data-group="machine" data-erp="수성출력" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>라텍스출력</td><td>라텍스</td><td><input class="dec" data-key="machine::라텍스출력" data-group="machine" data-erp="라텍스출력" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>레이저</td><td>레이저(아크릴컷팅기)</td><td><input class="dec" data-key="machine::레이저" data-group="machine" data-erp="레이저" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>시나젯</td><td>(가이드 없음)</td><td><input class="dec" data-key="machine::시나젯" data-group="machine" data-erp="시나젯" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>슈마재단</td><td>슈마(시트컷팅기)</td><td><input class="dec" data-key="machine::슈마재단" data-group="machine" data-erp="슈마재단" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>본사</td><td>(공장-비장비)</td><td><input class="dec" data-key="machine::본사" data-group="machine" data-erp="본사" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>2공장</td><td>(공장-비장비)</td><td><input class="dec" data-key="machine::2공장" data-group="machine" data-erp="2공장" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>DTF출력기</td><td>(가이드 없음)</td><td><input class="dec" data-key="machine::DTF출력기" data-group="machine" data-erp="DTF출력기" placeholder="최종결정 입력"></td></tr>
+<table><tr><th style="width:16%">ERP 명칭</th><th style="width:30%">가이드 표준명</th><th style="width:27%">1차 수정안</th><th>최종 협의안</th></tr>
+<tr class="ok"><td>UV출력기</td><td>UV 평판</td><td><input class="dec" data-key="machine::UV출력기" data-field="draft" data-group="machine" data-erp="UV출력기" placeholder="1차 수정안"></td><td><input class="dec final" data-key="machine::UV출력기" data-field="final" data-group="machine" data-erp="UV출력기" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>준드</td><td>ZUND(평판컷팅기)</td><td><input class="dec" data-key="machine::준드" data-field="draft" data-group="machine" data-erp="준드" placeholder="1차 수정안"></td><td><input class="dec final" data-key="machine::준드" data-field="final" data-group="machine" data-erp="준드" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>솔벤출력기</td><td>솔벤트 프린터</td><td><input class="dec" data-key="machine::솔벤출력기" data-field="draft" data-group="machine" data-erp="솔벤출력기" placeholder="1차 수정안"></td><td><input class="dec final" data-key="machine::솔벤출력기" data-field="final" data-group="machine" data-erp="솔벤출력기" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>런스롤러</td><td>(가이드 없음)</td><td><input class="dec" data-key="machine::런스롤러" data-field="draft" data-group="machine" data-erp="런스롤러" placeholder="1차 수정안"></td><td><input class="dec final" data-key="machine::런스롤러" data-field="final" data-group="machine" data-erp="런스롤러" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>수성출력</td><td>수성 프린터</td><td><input class="dec" data-key="machine::수성출력" data-field="draft" data-group="machine" data-erp="수성출력" placeholder="1차 수정안"></td><td><input class="dec final" data-key="machine::수성출력" data-field="final" data-group="machine" data-erp="수성출력" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>라텍스출력</td><td>라텍스</td><td><input class="dec" data-key="machine::라텍스출력" data-field="draft" data-group="machine" data-erp="라텍스출력" placeholder="1차 수정안"></td><td><input class="dec final" data-key="machine::라텍스출력" data-field="final" data-group="machine" data-erp="라텍스출력" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>레이저</td><td>레이저(아크릴컷팅기)</td><td><input class="dec" data-key="machine::레이저" data-field="draft" data-group="machine" data-erp="레이저" placeholder="1차 수정안"></td><td><input class="dec final" data-key="machine::레이저" data-field="final" data-group="machine" data-erp="레이저" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>시나젯</td><td>(가이드 없음)</td><td><input class="dec" data-key="machine::시나젯" data-field="draft" data-group="machine" data-erp="시나젯" placeholder="1차 수정안"></td><td><input class="dec final" data-key="machine::시나젯" data-field="final" data-group="machine" data-erp="시나젯" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>슈마재단</td><td>슈마(시트컷팅기)</td><td><input class="dec" data-key="machine::슈마재단" data-field="draft" data-group="machine" data-erp="슈마재단" placeholder="1차 수정안"></td><td><input class="dec final" data-key="machine::슈마재단" data-field="final" data-group="machine" data-erp="슈마재단" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>본사</td><td>(공장-비장비)</td><td><input class="dec" data-key="machine::본사" data-field="draft" data-group="machine" data-erp="본사" placeholder="1차 수정안"></td><td><input class="dec final" data-key="machine::본사" data-field="final" data-group="machine" data-erp="본사" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>2공장</td><td>(공장-비장비)</td><td><input class="dec" data-key="machine::2공장" data-field="draft" data-group="machine" data-erp="2공장" placeholder="1차 수정안"></td><td><input class="dec final" data-key="machine::2공장" data-field="final" data-group="machine" data-erp="2공장" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>DTF출력기</td><td>(가이드 없음)</td><td><input class="dec" data-key="machine::DTF출력기" data-field="draft" data-group="machine" data-erp="DTF출력기" placeholder="1차 수정안"></td><td><input class="dec final" data-key="machine::DTF출력기" data-field="final" data-group="machine" data-erp="DTF출력기" placeholder="최종 협의안"></td></tr>
 </table>
 
 <h2>2. 공정 (StageJus — 인쇄·재단 공정)</h2>
 <p class="lead">ERP 공정 드롭다운 상위 15개(외주업체명 제외) — 인쇄/재단 공정 매핑.</p>
 <div class="stat"><span class="ok">표준 매핑 OK 8</span><span class="warn">가이드 누락 7</span><span class="oos">비공정/공장 0</span></div>
-<table><tr><th style="width:22%">ERP 명칭</th><th style="width:38%">가이드 표준명</th><th>최종결정 (직접 입력)</th></tr>
-<tr class="ok"><td>UV인쇄</td><td>UV평판 직인쇄</td><td><input class="dec" data-key="stage::UV인쇄" data-group="stage" data-erp="UV인쇄" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>준드재단</td><td>ZUND 라우터·V컷</td><td><input class="dec" data-key="stage::준드재단" data-group="stage" data-erp="준드재단" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>포장</td><td>(공정-비인쇄)</td><td><input class="dec" data-key="stage::포장" data-group="stage" data-erp="포장" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>솔벤인쇄</td><td>솔벤트 인쇄</td><td><input class="dec" data-key="stage::솔벤인쇄" data-group="stage" data-erp="솔벤인쇄" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>후가공</td><td>코팅·후가공</td><td><input class="dec" data-key="stage::후가공" data-group="stage" data-erp="후가공" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>외주발주</td><td>(외부)</td><td><input class="dec" data-key="stage::외주발주" data-group="stage" data-erp="외주발주" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>라텍스출력</td><td>라텍스 인쇄</td><td><input class="dec" data-key="stage::라텍스출력" data-group="stage" data-erp="라텍스출력" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>재고포장</td><td>(공정-비인쇄)</td><td><input class="dec" data-key="stage::재고포장" data-group="stage" data-erp="재고포장" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>시나젯재단</td><td>(가이드 없음)</td><td><input class="dec" data-key="stage::시나젯재단" data-group="stage" data-erp="시나젯재단" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>수성출력</td><td>수성 인쇄</td><td><input class="dec" data-key="stage::수성출력" data-group="stage" data-erp="수성출력" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>레이저재단</td><td>레이저 컷팅·음각</td><td><input class="dec" data-key="stage::레이저재단" data-group="stage" data-erp="레이저재단" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>슈마재단</td><td>슈마 컷팅</td><td><input class="dec" data-key="stage::슈마재단" data-group="stage" data-erp="슈마재단" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>본사</td><td>(공장)</td><td><input class="dec" data-key="stage::본사" data-group="stage" data-erp="본사" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>2공장</td><td>(공장)</td><td><input class="dec" data-key="stage::2공장" data-group="stage" data-erp="2공장" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>DTF스티커</td><td>(가이드 없음)</td><td><input class="dec" data-key="stage::DTF스티커" data-group="stage" data-erp="DTF스티커" placeholder="최종결정 입력"></td></tr>
+<table><tr><th style="width:16%">ERP 명칭</th><th style="width:30%">가이드 표준명</th><th style="width:27%">1차 수정안</th><th>최종 협의안</th></tr>
+<tr class="ok"><td>UV인쇄</td><td>UV평판 직인쇄</td><td><input class="dec" data-key="stage::UV인쇄" data-field="draft" data-group="stage" data-erp="UV인쇄" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::UV인쇄" data-field="final" data-group="stage" data-erp="UV인쇄" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>준드재단</td><td>ZUND 라우터·V컷</td><td><input class="dec" data-key="stage::준드재단" data-field="draft" data-group="stage" data-erp="준드재단" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::준드재단" data-field="final" data-group="stage" data-erp="준드재단" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>포장</td><td>(공정-비인쇄)</td><td><input class="dec" data-key="stage::포장" data-field="draft" data-group="stage" data-erp="포장" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::포장" data-field="final" data-group="stage" data-erp="포장" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>솔벤인쇄</td><td>솔벤트 인쇄</td><td><input class="dec" data-key="stage::솔벤인쇄" data-field="draft" data-group="stage" data-erp="솔벤인쇄" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::솔벤인쇄" data-field="final" data-group="stage" data-erp="솔벤인쇄" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>후가공</td><td>코팅·후가공</td><td><input class="dec" data-key="stage::후가공" data-field="draft" data-group="stage" data-erp="후가공" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::후가공" data-field="final" data-group="stage" data-erp="후가공" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>외주발주</td><td>(외부)</td><td><input class="dec" data-key="stage::외주발주" data-field="draft" data-group="stage" data-erp="외주발주" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::외주발주" data-field="final" data-group="stage" data-erp="외주발주" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>라텍스출력</td><td>라텍스 인쇄</td><td><input class="dec" data-key="stage::라텍스출력" data-field="draft" data-group="stage" data-erp="라텍스출력" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::라텍스출력" data-field="final" data-group="stage" data-erp="라텍스출력" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>재고포장</td><td>(공정-비인쇄)</td><td><input class="dec" data-key="stage::재고포장" data-field="draft" data-group="stage" data-erp="재고포장" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::재고포장" data-field="final" data-group="stage" data-erp="재고포장" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>시나젯재단</td><td>(가이드 없음)</td><td><input class="dec" data-key="stage::시나젯재단" data-field="draft" data-group="stage" data-erp="시나젯재단" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::시나젯재단" data-field="final" data-group="stage" data-erp="시나젯재단" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>수성출력</td><td>수성 인쇄</td><td><input class="dec" data-key="stage::수성출력" data-field="draft" data-group="stage" data-erp="수성출력" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::수성출력" data-field="final" data-group="stage" data-erp="수성출력" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>레이저재단</td><td>레이저 컷팅·음각</td><td><input class="dec" data-key="stage::레이저재단" data-field="draft" data-group="stage" data-erp="레이저재단" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::레이저재단" data-field="final" data-group="stage" data-erp="레이저재단" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>슈마재단</td><td>슈마 컷팅</td><td><input class="dec" data-key="stage::슈마재단" data-field="draft" data-group="stage" data-erp="슈마재단" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::슈마재단" data-field="final" data-group="stage" data-erp="슈마재단" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>본사</td><td>(공장)</td><td><input class="dec" data-key="stage::본사" data-field="draft" data-group="stage" data-erp="본사" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::본사" data-field="final" data-group="stage" data-erp="본사" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>2공장</td><td>(공장)</td><td><input class="dec" data-key="stage::2공장" data-field="draft" data-group="stage" data-erp="2공장" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::2공장" data-field="final" data-group="stage" data-erp="2공장" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>DTF스티커</td><td>(가이드 없음)</td><td><input class="dec" data-key="stage::DTF스티커" data-field="draft" data-group="stage" data-erp="DTF스티커" placeholder="1차 수정안"></td><td><input class="dec final" data-key="stage::DTF스티커" data-field="final" data-group="stage" data-erp="DTF스티커" placeholder="최종 협의안"></td></tr>
 </table>
 <div class="factory"><b>외주업체·공장 (StageJus 16번~)</b> — 가이드 비교 대상 아님: 본사, 2공장, 해광, 진성, 대일, 아프로액자, 아론, 성원애드피아, 청룡명찰, 실사박사, 동광몰, 돌타월닷컴, 제일금속, 아이작, 와우프레스, 신창안전유리, 검단레이저, 아트사인, 엘림, 애드몰, 광일플라스틱, 유니매트, 인쇄마을, 신애드, 유진애드, 아론/유진애드, 실사박사/신애드, 배면UV인쇄</div>
 
 <h2>3. 재질 (Material)</h2>
 <p class="lead">ERP 재질 마스터 64종 vs 가이드 자재 종합표 — 핵심 매핑.</p>
 <div class="stat"><span class="ok">표준 매핑 OK 36</span><span class="warn">가이드 누락 10</span><span class="oos">범위 외(금속·부자재) 18</span></div>
-<table><tr><th style="width:22%">ERP 명칭</th><th style="width:38%">가이드 표준명 / 비고</th><th>최종결정 (직접 입력)</th></tr>
-<tr class="ok"><td>포맥스3T</td><td>포맥스(두께 3T)</td><td><input class="dec" data-key="material::포맥스3T" data-group="material" data-erp="포맥스3T" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>아크릴10T</td><td>아크릴(10T)</td><td><input class="dec" data-key="material::아크릴10T" data-group="material" data-erp="아크릴10T" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>강화유리포켓</td><td>(가이드 없음, 게시판 부품)</td><td><input class="dec" data-key="material::강화유리포켓" data-group="material" data-erp="강화유리포켓" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>고휘도반사지</td><td>프리즘형/고휘도 반사시트</td><td><input class="dec" data-key="material::고휘도반사지" data-group="material" data-erp="고휘도반사지" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>금속특수시트</td><td>금속특수시트(알루미늄 논슬립)</td><td><input class="dec" data-key="material::금속특수시트" data-group="material" data-erp="금속특수시트" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>금속판</td><td>알루미늄 복합판넬(또는 금속판)</td><td><input class="dec" data-key="material::금속판" data-group="material" data-erp="금속판" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>라텍스켈</td><td>캘그레이/캘 시트(랩핑계)</td><td><input class="dec" data-key="material::라텍스켈" data-group="material" data-erp="라텍스켈" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>레드포맥스5T</td><td>포맥스(레드 5T)</td><td><input class="dec" data-key="material::레드포맥스5T" data-group="material" data-erp="레드포맥스5T" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>리무벌시트</td><td>리무버(라텍스 점착군)</td><td><input class="dec" data-key="material::리무벌시트" data-group="material" data-erp="리무벌시트" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>메탈표찰</td><td>로마크판/메탈 명판</td><td><input class="dec" data-key="material::메탈표찰" data-group="material" data-erp="메탈표찰" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>무지</td><td>[옵션-디자인없음]</td><td><input class="dec" data-key="material::무지" data-group="material" data-erp="무지" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>일반반사지</td><td>솔벤반사 백색(일반)</td><td><input class="dec" data-key="material::일반반사지" data-group="material" data-erp="일반반사지" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>아크릴2T</td><td>아크릴(두께 2T)</td><td><input class="dec" data-key="material::아크릴2T" data-group="material" data-erp="아크릴2T" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>아크릴5T</td><td>아크릴(5T)</td><td><input class="dec" data-key="material::아크릴5T" data-group="material" data-erp="아크릴5T" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>아트지-강력접착</td><td>(미매핑)</td><td><input class="dec" data-key="material::아트지-강력접착" data-group="material" data-erp="아트지-강력접착" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>아트지-일반접착</td><td>(미매핑)</td><td><input class="dec" data-key="material::아트지-일반접착" data-group="material" data-erp="아트지-일반접착" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>여닫이안내판</td><td>(완제품-비자재)</td><td><input class="dec" data-key="material::여닫이안내판" data-group="material" data-erp="여닫이안내판" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>유포지</td><td>(가이드 없음, 합성지 계열)</td><td><input class="dec" data-key="material::유포지" data-group="material" data-erp="유포지" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>자석0.8T</td><td>자석(0.8T)</td><td><input class="dec" data-key="material::자석0.8T" data-group="material" data-erp="자석0.8T" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>축광시트</td><td>솔벤 축광</td><td><input class="dec" data-key="material::축광시트" data-group="material" data-erp="축광시트" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>투명시트</td><td>투명PVC/고투명</td><td><input class="dec" data-key="material::투명시트" data-group="material" data-erp="투명시트" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>폴리카보네이트</td><td>PC(폴리카보네이트)</td><td><input class="dec" data-key="material::폴리카보네이트" data-group="material" data-erp="폴리카보네이트" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>패브릭시트</td><td>(가이드 없음)</td><td><input class="dec" data-key="material::패브릭시트" data-group="material" data-erp="패브릭시트" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>패트0.5T</td><td>패트(PET, 0.5T)</td><td><input class="dec" data-key="material::패트0.5T" data-group="material" data-erp="패트0.5T" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>포맥스1T</td><td>포맥스(두께 1T)</td><td><input class="dec" data-key="material::포맥스1T" data-group="material" data-erp="포맥스1T" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>포맥스2T</td><td>포맥스(두께 2T)</td><td><input class="dec" data-key="material::포맥스2T" data-group="material" data-erp="포맥스2T" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>포맥스5T</td><td>포맥스(두께 5T)</td><td><input class="dec" data-key="material::포맥스5T" data-group="material" data-erp="포맥스5T" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>포마트10T</td><td>포맥스(=포마트 10T 표기 통일 필요)</td><td><input class="dec" data-key="material::포마트10T" data-group="material" data-erp="포마트10T" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>플렉스</td><td>플렉스(솔벤군)</td><td><input class="dec" data-key="material::플렉스" data-group="material" data-erp="플렉스" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>항균필름</td><td>(가이드 없음)</td><td><input class="dec" data-key="material::항균필름" data-group="material" data-erp="항균필름" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>헤어라인시트</td><td>(가이드 없음, 럭셔리 자재)</td><td><input class="dec" data-key="material::헤어라인시트" data-group="material" data-erp="헤어라인시트" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>현수막천</td><td>현수막천</td><td><input class="dec" data-key="material::현수막천" data-group="material" data-erp="현수막천" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>홀로그램시트</td><td>홀로그램 배면접착(코팅재 분류)</td><td><input class="dec" data-key="material::홀로그램시트" data-group="material" data-erp="홀로그램시트" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>화이트보드시트</td><td>(가이드 없음)</td><td><input class="dec" data-key="material::화이트보드시트" data-group="material" data-erp="화이트보드시트" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>화이트시트</td><td>화이트시트</td><td><input class="dec" data-key="material::화이트시트" data-group="material" data-erp="화이트시트" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>와이어 1SET</td><td>[부자재]</td><td><input class="dec" data-key="material::와이어 1SET" data-group="material" data-erp="와이어 1SET" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>다보4개</td><td>[부자재]</td><td><input class="dec" data-key="material::다보4개" data-group="material" data-erp="다보4개" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>종이다리</td><td>[부자재]</td><td><input class="dec" data-key="material::종이다리" data-group="material" data-erp="종이다리" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>큐방</td><td>[부자재]</td><td><input class="dec" data-key="material::큐방" data-group="material" data-erp="큐방" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>미끄럼방지시트</td><td>미끄럼방지시트</td><td><input class="dec" data-key="material::미끄럼방지시트" data-group="material" data-erp="미끄럼방지시트" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>안개시트</td><td>울트라 엠보(에칭) 계열</td><td><input class="dec" data-key="material::안개시트" data-group="material" data-erp="안개시트" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>알루미늄</td><td>[가이드 범위 외 - 금속 원재]</td><td><input class="dec" data-key="material::알루미늄" data-group="material" data-erp="알루미늄" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>MDF합판</td><td>목재(MDF)</td><td><input class="dec" data-key="material::MDF합판" data-group="material" data-erp="MDF합판" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>스텐304</td><td>[가이드 범위 외 - 금속]</td><td><input class="dec" data-key="material::스텐304" data-group="material" data-erp="스텐304" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>스텐201</td><td>[가이드 범위 외 - 금속]</td><td><input class="dec" data-key="material::스텐201" data-group="material" data-erp="스텐201" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>HDPE</td><td>[가이드 범위 외 - 사출]</td><td><input class="dec" data-key="material::HDPE" data-group="material" data-erp="HDPE" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>스틸</td><td>[가이드 범위 외 - 금속]</td><td><input class="dec" data-key="material::스틸" data-group="material" data-erp="스틸" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>PE</td><td>[가이드 범위 외 - 사출]</td><td><input class="dec" data-key="material::PE" data-group="material" data-erp="PE" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>우드</td><td>목재(원목)</td><td><input class="dec" data-key="material::우드" data-group="material" data-erp="우드" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>반사지</td><td>반사시트(공통)</td><td><input class="dec" data-key="material::반사지" data-group="material" data-erp="반사지" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>패트배너지</td><td>PET천(현수막군)</td><td><input class="dec" data-key="material::패트배너지" data-group="material" data-erp="패트배너지" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>현수막</td><td>현수막천(약식)</td><td><input class="dec" data-key="material::현수막" data-group="material" data-erp="현수막" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>우드,몰딩</td><td>목재(우드+몰딩)</td><td><input class="dec" data-key="material::우드,몰딩" data-group="material" data-erp="우드,몰딩" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>철제+도장</td><td>[가이드 범위 외 - 금속도장]</td><td><input class="dec" data-key="material::철제+도장" data-group="material" data-erp="철제+도장" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>각파이프</td><td>[가이드 범위 외 - 금속]</td><td><input class="dec" data-key="material::각파이프" data-group="material" data-erp="각파이프" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>아크릴포켓</td><td>아크릴(포켓 가공물)</td><td><input class="dec" data-key="material::아크릴포켓" data-group="material" data-erp="아크릴포켓" placeholder="최종결정 입력"></td></tr>
-<tr class="warn"><td>강화유리판3T</td><td>(가이드 없음)</td><td><input class="dec" data-key="material::강화유리판3T" data-group="material" data-erp="강화유리판3T" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>ABS</td><td>[가이드 범위 외 - 사출 잡화]</td><td><input class="dec" data-key="material::ABS" data-group="material" data-erp="ABS" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>LDPE</td><td>[가이드 범위 외 - 사출]</td><td><input class="dec" data-key="material::LDPE" data-group="material" data-erp="LDPE" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>화이트시트-강접</td><td>무광 강접(=화이트강접)</td><td><input class="dec" data-key="material::화이트시트-강접" data-group="material" data-erp="화이트시트-강접" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>다보다리</td><td>[부자재]</td><td><input class="dec" data-key="material::다보다리" data-group="material" data-erp="다보다리" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>모듈</td><td>[부자재/모듈]</td><td><input class="dec" data-key="material::모듈" data-group="material" data-erp="모듈" placeholder="최종결정 입력"></td></tr>
-<tr class="oos"><td>수목표찰스프링</td><td>[부자재]</td><td><input class="dec" data-key="material::수목표찰스프링" data-group="material" data-erp="수목표찰스프링" placeholder="최종결정 입력"></td></tr>
-<tr class="ok"><td>아크릴3T</td><td>아크릴(3T)</td><td><input class="dec" data-key="material::아크릴3T" data-group="material" data-erp="아크릴3T" placeholder="최종결정 입력"></td></tr>
+<table><tr><th style="width:16%">ERP 명칭</th><th style="width:30%">가이드 표준명 / 비고</th><th style="width:27%">1차 수정안</th><th>최종 협의안</th></tr>
+<tr class="ok"><td>포맥스3T</td><td>포맥스(두께 3T)</td><td><input class="dec" data-key="material::포맥스3T" data-field="draft" data-group="material" data-erp="포맥스3T" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::포맥스3T" data-field="final" data-group="material" data-erp="포맥스3T" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>아크릴10T</td><td>아크릴(10T)</td><td><input class="dec" data-key="material::아크릴10T" data-field="draft" data-group="material" data-erp="아크릴10T" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::아크릴10T" data-field="final" data-group="material" data-erp="아크릴10T" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>강화유리포켓</td><td>(가이드 없음, 게시판 부품)</td><td><input class="dec" data-key="material::강화유리포켓" data-field="draft" data-group="material" data-erp="강화유리포켓" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::강화유리포켓" data-field="final" data-group="material" data-erp="강화유리포켓" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>고휘도반사지</td><td>프리즘형/고휘도 반사시트</td><td><input class="dec" data-key="material::고휘도반사지" data-field="draft" data-group="material" data-erp="고휘도반사지" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::고휘도반사지" data-field="final" data-group="material" data-erp="고휘도반사지" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>금속특수시트</td><td>금속특수시트(알루미늄 논슬립)</td><td><input class="dec" data-key="material::금속특수시트" data-field="draft" data-group="material" data-erp="금속특수시트" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::금속특수시트" data-field="final" data-group="material" data-erp="금속특수시트" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>금속판</td><td>알루미늄 복합판넬(또는 금속판)</td><td><input class="dec" data-key="material::금속판" data-field="draft" data-group="material" data-erp="금속판" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::금속판" data-field="final" data-group="material" data-erp="금속판" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>라텍스켈</td><td>캘그레이/캘 시트(랩핑계)</td><td><input class="dec" data-key="material::라텍스켈" data-field="draft" data-group="material" data-erp="라텍스켈" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::라텍스켈" data-field="final" data-group="material" data-erp="라텍스켈" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>레드포맥스5T</td><td>포맥스(레드 5T)</td><td><input class="dec" data-key="material::레드포맥스5T" data-field="draft" data-group="material" data-erp="레드포맥스5T" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::레드포맥스5T" data-field="final" data-group="material" data-erp="레드포맥스5T" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>리무벌시트</td><td>리무버(라텍스 점착군)</td><td><input class="dec" data-key="material::리무벌시트" data-field="draft" data-group="material" data-erp="리무벌시트" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::리무벌시트" data-field="final" data-group="material" data-erp="리무벌시트" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>메탈표찰</td><td>로마크판/메탈 명판</td><td><input class="dec" data-key="material::메탈표찰" data-field="draft" data-group="material" data-erp="메탈표찰" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::메탈표찰" data-field="final" data-group="material" data-erp="메탈표찰" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>무지</td><td>[옵션-디자인없음]</td><td><input class="dec" data-key="material::무지" data-field="draft" data-group="material" data-erp="무지" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::무지" data-field="final" data-group="material" data-erp="무지" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>일반반사지</td><td>솔벤반사 백색(일반)</td><td><input class="dec" data-key="material::일반반사지" data-field="draft" data-group="material" data-erp="일반반사지" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::일반반사지" data-field="final" data-group="material" data-erp="일반반사지" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>아크릴2T</td><td>아크릴(두께 2T)</td><td><input class="dec" data-key="material::아크릴2T" data-field="draft" data-group="material" data-erp="아크릴2T" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::아크릴2T" data-field="final" data-group="material" data-erp="아크릴2T" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>아크릴5T</td><td>아크릴(5T)</td><td><input class="dec" data-key="material::아크릴5T" data-field="draft" data-group="material" data-erp="아크릴5T" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::아크릴5T" data-field="final" data-group="material" data-erp="아크릴5T" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>아트지-강력접착</td><td>(미매핑)</td><td><input class="dec" data-key="material::아트지-강력접착" data-field="draft" data-group="material" data-erp="아트지-강력접착" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::아트지-강력접착" data-field="final" data-group="material" data-erp="아트지-강력접착" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>아트지-일반접착</td><td>(미매핑)</td><td><input class="dec" data-key="material::아트지-일반접착" data-field="draft" data-group="material" data-erp="아트지-일반접착" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::아트지-일반접착" data-field="final" data-group="material" data-erp="아트지-일반접착" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>여닫이안내판</td><td>(완제품-비자재)</td><td><input class="dec" data-key="material::여닫이안내판" data-field="draft" data-group="material" data-erp="여닫이안내판" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::여닫이안내판" data-field="final" data-group="material" data-erp="여닫이안내판" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>유포지</td><td>(가이드 없음, 합성지 계열)</td><td><input class="dec" data-key="material::유포지" data-field="draft" data-group="material" data-erp="유포지" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::유포지" data-field="final" data-group="material" data-erp="유포지" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>자석0.8T</td><td>자석(0.8T)</td><td><input class="dec" data-key="material::자석0.8T" data-field="draft" data-group="material" data-erp="자석0.8T" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::자석0.8T" data-field="final" data-group="material" data-erp="자석0.8T" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>축광시트</td><td>솔벤 축광</td><td><input class="dec" data-key="material::축광시트" data-field="draft" data-group="material" data-erp="축광시트" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::축광시트" data-field="final" data-group="material" data-erp="축광시트" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>투명시트</td><td>투명PVC/고투명</td><td><input class="dec" data-key="material::투명시트" data-field="draft" data-group="material" data-erp="투명시트" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::투명시트" data-field="final" data-group="material" data-erp="투명시트" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>폴리카보네이트</td><td>PC(폴리카보네이트)</td><td><input class="dec" data-key="material::폴리카보네이트" data-field="draft" data-group="material" data-erp="폴리카보네이트" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::폴리카보네이트" data-field="final" data-group="material" data-erp="폴리카보네이트" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>패브릭시트</td><td>(가이드 없음)</td><td><input class="dec" data-key="material::패브릭시트" data-field="draft" data-group="material" data-erp="패브릭시트" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::패브릭시트" data-field="final" data-group="material" data-erp="패브릭시트" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>패트0.5T</td><td>패트(PET, 0.5T)</td><td><input class="dec" data-key="material::패트0.5T" data-field="draft" data-group="material" data-erp="패트0.5T" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::패트0.5T" data-field="final" data-group="material" data-erp="패트0.5T" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>포맥스1T</td><td>포맥스(두께 1T)</td><td><input class="dec" data-key="material::포맥스1T" data-field="draft" data-group="material" data-erp="포맥스1T" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::포맥스1T" data-field="final" data-group="material" data-erp="포맥스1T" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>포맥스2T</td><td>포맥스(두께 2T)</td><td><input class="dec" data-key="material::포맥스2T" data-field="draft" data-group="material" data-erp="포맥스2T" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::포맥스2T" data-field="final" data-group="material" data-erp="포맥스2T" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>포맥스5T</td><td>포맥스(두께 5T)</td><td><input class="dec" data-key="material::포맥스5T" data-field="draft" data-group="material" data-erp="포맥스5T" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::포맥스5T" data-field="final" data-group="material" data-erp="포맥스5T" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>포마트10T</td><td>포맥스(=포마트 10T 표기 통일 필요)</td><td><input class="dec" data-key="material::포마트10T" data-field="draft" data-group="material" data-erp="포마트10T" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::포마트10T" data-field="final" data-group="material" data-erp="포마트10T" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>플렉스</td><td>플렉스(솔벤군)</td><td><input class="dec" data-key="material::플렉스" data-field="draft" data-group="material" data-erp="플렉스" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::플렉스" data-field="final" data-group="material" data-erp="플렉스" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>항균필름</td><td>(가이드 없음)</td><td><input class="dec" data-key="material::항균필름" data-field="draft" data-group="material" data-erp="항균필름" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::항균필름" data-field="final" data-group="material" data-erp="항균필름" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>헤어라인시트</td><td>(가이드 없음, 럭셔리 자재)</td><td><input class="dec" data-key="material::헤어라인시트" data-field="draft" data-group="material" data-erp="헤어라인시트" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::헤어라인시트" data-field="final" data-group="material" data-erp="헤어라인시트" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>현수막천</td><td>현수막천</td><td><input class="dec" data-key="material::현수막천" data-field="draft" data-group="material" data-erp="현수막천" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::현수막천" data-field="final" data-group="material" data-erp="현수막천" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>홀로그램시트</td><td>홀로그램 배면접착(코팅재 분류)</td><td><input class="dec" data-key="material::홀로그램시트" data-field="draft" data-group="material" data-erp="홀로그램시트" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::홀로그램시트" data-field="final" data-group="material" data-erp="홀로그램시트" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>화이트보드시트</td><td>(가이드 없음)</td><td><input class="dec" data-key="material::화이트보드시트" data-field="draft" data-group="material" data-erp="화이트보드시트" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::화이트보드시트" data-field="final" data-group="material" data-erp="화이트보드시트" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>화이트시트</td><td>화이트시트</td><td><input class="dec" data-key="material::화이트시트" data-field="draft" data-group="material" data-erp="화이트시트" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::화이트시트" data-field="final" data-group="material" data-erp="화이트시트" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>와이어 1SET</td><td>[부자재]</td><td><input class="dec" data-key="material::와이어 1SET" data-field="draft" data-group="material" data-erp="와이어 1SET" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::와이어 1SET" data-field="final" data-group="material" data-erp="와이어 1SET" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>다보4개</td><td>[부자재]</td><td><input class="dec" data-key="material::다보4개" data-field="draft" data-group="material" data-erp="다보4개" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::다보4개" data-field="final" data-group="material" data-erp="다보4개" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>종이다리</td><td>[부자재]</td><td><input class="dec" data-key="material::종이다리" data-field="draft" data-group="material" data-erp="종이다리" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::종이다리" data-field="final" data-group="material" data-erp="종이다리" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>큐방</td><td>[부자재]</td><td><input class="dec" data-key="material::큐방" data-field="draft" data-group="material" data-erp="큐방" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::큐방" data-field="final" data-group="material" data-erp="큐방" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>미끄럼방지시트</td><td>미끄럼방지시트</td><td><input class="dec" data-key="material::미끄럼방지시트" data-field="draft" data-group="material" data-erp="미끄럼방지시트" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::미끄럼방지시트" data-field="final" data-group="material" data-erp="미끄럼방지시트" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>안개시트</td><td>울트라 엠보(에칭) 계열</td><td><input class="dec" data-key="material::안개시트" data-field="draft" data-group="material" data-erp="안개시트" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::안개시트" data-field="final" data-group="material" data-erp="안개시트" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>알루미늄</td><td>[가이드 범위 외 - 금속 원재]</td><td><input class="dec" data-key="material::알루미늄" data-field="draft" data-group="material" data-erp="알루미늄" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::알루미늄" data-field="final" data-group="material" data-erp="알루미늄" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>MDF합판</td><td>목재(MDF)</td><td><input class="dec" data-key="material::MDF합판" data-field="draft" data-group="material" data-erp="MDF합판" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::MDF합판" data-field="final" data-group="material" data-erp="MDF합판" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>스텐304</td><td>[가이드 범위 외 - 금속]</td><td><input class="dec" data-key="material::스텐304" data-field="draft" data-group="material" data-erp="스텐304" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::스텐304" data-field="final" data-group="material" data-erp="스텐304" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>스텐201</td><td>[가이드 범위 외 - 금속]</td><td><input class="dec" data-key="material::스텐201" data-field="draft" data-group="material" data-erp="스텐201" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::스텐201" data-field="final" data-group="material" data-erp="스텐201" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>HDPE</td><td>[가이드 범위 외 - 사출]</td><td><input class="dec" data-key="material::HDPE" data-field="draft" data-group="material" data-erp="HDPE" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::HDPE" data-field="final" data-group="material" data-erp="HDPE" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>스틸</td><td>[가이드 범위 외 - 금속]</td><td><input class="dec" data-key="material::스틸" data-field="draft" data-group="material" data-erp="스틸" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::스틸" data-field="final" data-group="material" data-erp="스틸" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>PE</td><td>[가이드 범위 외 - 사출]</td><td><input class="dec" data-key="material::PE" data-field="draft" data-group="material" data-erp="PE" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::PE" data-field="final" data-group="material" data-erp="PE" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>우드</td><td>목재(원목)</td><td><input class="dec" data-key="material::우드" data-field="draft" data-group="material" data-erp="우드" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::우드" data-field="final" data-group="material" data-erp="우드" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>반사지</td><td>반사시트(공통)</td><td><input class="dec" data-key="material::반사지" data-field="draft" data-group="material" data-erp="반사지" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::반사지" data-field="final" data-group="material" data-erp="반사지" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>패트배너지</td><td>PET천(현수막군)</td><td><input class="dec" data-key="material::패트배너지" data-field="draft" data-group="material" data-erp="패트배너지" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::패트배너지" data-field="final" data-group="material" data-erp="패트배너지" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>현수막</td><td>현수막천(약식)</td><td><input class="dec" data-key="material::현수막" data-field="draft" data-group="material" data-erp="현수막" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::현수막" data-field="final" data-group="material" data-erp="현수막" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>우드,몰딩</td><td>목재(우드+몰딩)</td><td><input class="dec" data-key="material::우드,몰딩" data-field="draft" data-group="material" data-erp="우드,몰딩" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::우드,몰딩" data-field="final" data-group="material" data-erp="우드,몰딩" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>철제+도장</td><td>[가이드 범위 외 - 금속도장]</td><td><input class="dec" data-key="material::철제+도장" data-field="draft" data-group="material" data-erp="철제+도장" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::철제+도장" data-field="final" data-group="material" data-erp="철제+도장" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>각파이프</td><td>[가이드 범위 외 - 금속]</td><td><input class="dec" data-key="material::각파이프" data-field="draft" data-group="material" data-erp="각파이프" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::각파이프" data-field="final" data-group="material" data-erp="각파이프" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>아크릴포켓</td><td>아크릴(포켓 가공물)</td><td><input class="dec" data-key="material::아크릴포켓" data-field="draft" data-group="material" data-erp="아크릴포켓" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::아크릴포켓" data-field="final" data-group="material" data-erp="아크릴포켓" placeholder="최종 협의안"></td></tr>
+<tr class="warn"><td>강화유리판3T</td><td>(가이드 없음)</td><td><input class="dec" data-key="material::강화유리판3T" data-field="draft" data-group="material" data-erp="강화유리판3T" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::강화유리판3T" data-field="final" data-group="material" data-erp="강화유리판3T" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>ABS</td><td>[가이드 범위 외 - 사출 잡화]</td><td><input class="dec" data-key="material::ABS" data-field="draft" data-group="material" data-erp="ABS" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::ABS" data-field="final" data-group="material" data-erp="ABS" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>LDPE</td><td>[가이드 범위 외 - 사출]</td><td><input class="dec" data-key="material::LDPE" data-field="draft" data-group="material" data-erp="LDPE" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::LDPE" data-field="final" data-group="material" data-erp="LDPE" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>화이트시트-강접</td><td>무광 강접(=화이트강접)</td><td><input class="dec" data-key="material::화이트시트-강접" data-field="draft" data-group="material" data-erp="화이트시트-강접" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::화이트시트-강접" data-field="final" data-group="material" data-erp="화이트시트-강접" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>다보다리</td><td>[부자재]</td><td><input class="dec" data-key="material::다보다리" data-field="draft" data-group="material" data-erp="다보다리" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::다보다리" data-field="final" data-group="material" data-erp="다보다리" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>모듈</td><td>[부자재/모듈]</td><td><input class="dec" data-key="material::모듈" data-field="draft" data-group="material" data-erp="모듈" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::모듈" data-field="final" data-group="material" data-erp="모듈" placeholder="최종 협의안"></td></tr>
+<tr class="oos"><td>수목표찰스프링</td><td>[부자재]</td><td><input class="dec" data-key="material::수목표찰스프링" data-field="draft" data-group="material" data-erp="수목표찰스프링" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::수목표찰스프링" data-field="final" data-group="material" data-erp="수목표찰스프링" placeholder="최종 협의안"></td></tr>
+<tr class="ok"><td>아크릴3T</td><td>아크릴(3T)</td><td><input class="dec" data-key="material::아크릴3T" data-field="draft" data-group="material" data-erp="아크릴3T" placeholder="1차 수정안"></td><td><input class="dec final" data-key="material::아크릴3T" data-field="final" data-group="material" data-erp="아크릴3T" placeholder="최종 협의안"></td></tr>
 </table>
 
 <h2>4. 가이드엔 있는데 ERP에 없는 자재 (보완 후보)</h2>
@@ -181,7 +185,7 @@
 </ul></div></div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot, serverTimestamp, deleteDoc, deleteField, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDLguJj7s8KZa6yAH80w-bOvduc3WR5Oss",
@@ -202,21 +206,26 @@ function setEditor(v){ localStorage.setItem(NAME_KEY,v); }
 const status = ()=>document.getElementById('status');
 function tick(msg){ status().textContent = msg + ' · ' + new Date().toLocaleTimeString(); }
 
-// 디바운스 저장
+// 디바운스 저장 (필드 단위: draft 또는 final)
 const timers = {};
-function saveCell(key, group, erp, value){
-  clearTimeout(timers[key]);
-  timers[key] = setTimeout(async ()=>{
+function saveCell(key, field, group, erp, value){
+  const t = key + '::' + field;
+  clearTimeout(timers[t]);
+  timers[t] = setTimeout(async ()=>{
     try{
+      const ref = doc(db, COL, key);
+      const editor = getEditor() || '미지정';
+      const payload = { group, erp, updatedAt: serverTimestamp(), updatedBy: editor };
       if(value.trim()===''){
-        await deleteDoc(doc(db, COL, key));
+        payload[field] = deleteField();
+        payload[field+'_by'] = deleteField();
+        payload[field+'_at'] = deleteField();
       } else {
-        await setDoc(doc(db, COL, key), {
-          group, erp, value: value.trim(),
-          updatedAt: serverTimestamp(),
-          updatedBy: getEditor() || '미지정'
-        });
+        payload[field] = value.trim();
+        payload[field+'_by'] = editor;
+        payload[field+'_at'] = serverTimestamp();
       }
+      await setDoc(ref, payload, {merge:true});
       tick('☁️ 저장됨');
     }catch(e){ tick('⚠️ 저장실패: '+e.code); console.error(e); }
   }, 350);
@@ -231,7 +240,7 @@ function init(){
   // 입력 핸들러
   document.querySelectorAll('input.dec').forEach(i=>{
     i.addEventListener('input', ()=>{
-      saveCell(i.dataset.key, i.dataset.group, i.dataset.erp, i.value);
+      saveCell(i.dataset.key, i.dataset.field, i.dataset.group, i.dataset.erp, i.value);
     });
   });
 
@@ -239,18 +248,22 @@ function init(){
   onSnapshot(collection(db, COL), (snap)=>{
     const m = {};
     snap.forEach(d=>{ m[d.id] = d.data(); });
+    let drafts=0, finals=0;
     document.querySelectorAll('input.dec').forEach(i=>{
-      const k = i.dataset.key;
-      if(m[k]){
-        if(document.activeElement!==i) i.value = m[k].value || '';
-        i.title = '편집: '+(m[k].updatedBy||'')+' · '+(m[k].updatedAt?.toDate?.()?.toLocaleString()||'');
+      const k = i.dataset.key, f = i.dataset.field;
+      const docData = m[k];
+      const val = docData?.[f] || '';
+      if(document.activeElement!==i) i.value = val;
+      if(val){
+        i.title = (f==='final'?'최종':'1차')+' 편집: '+(docData?.[f+'_by']||'')+' · '+(docData?.[f+'_at']?.toDate?.()?.toLocaleString()||'');
+        i.dataset.saved='1';
+        if(f==='draft') drafts++; else finals++;
       } else {
-        if(document.activeElement!==i) i.value = '';
         i.title='';
+        delete i.dataset.saved;
       }
     });
-    const cnt = Object.keys(m).length;
-    document.getElementById('cnt').textContent = cnt + '건 입력됨';
+    document.getElementById('cnt').textContent = `1차 ${drafts} · 최종 ${finals}`;
   }, err=>{ tick('⚠️ 동기화실패: '+err.code); });
 
   tick('☁️ Firebase 연결됨');
@@ -258,11 +271,15 @@ function init(){
 
 window.exportCSV = async function(){
   const snap = await getDocs(collection(db, COL));
-  const rows = [['분류','ERP명칭','최종결정','편집자','수정시각']];
+  const rows = [['분류','ERP명칭','1차 수정안','1차 편집자','1차 시각','최종 협의안','최종 편집자','최종 시각']];
   snap.forEach(d=>{
     const x = d.data();
-    rows.push([x.group||'', x.erp||'', x.value||'', x.updatedBy||'',
-      x.updatedAt?.toDate?.()?.toLocaleString() || '']);
+    if(!x.draft && !x.final) return;
+    rows.push([
+      x.group||'', x.erp||'',
+      x.draft||'', x.draft_by||'', x.draft_at?.toDate?.()?.toLocaleString()||'',
+      x.final||'', x.final_by||'', x.final_at?.toDate?.()?.toLocaleString()||''
+    ]);
   });
   if(rows.length===1){ alert('입력된 결정값이 없습니다.'); return; }
   const csv = '\ufeff' + rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
