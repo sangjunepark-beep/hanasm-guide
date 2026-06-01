@@ -45,6 +45,15 @@
  .notes .add button{padding:8px 16px;background:#2c5b9c;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:13px;white-space:nowrap;height:fit-content;align-self:flex-start;}
  .notes .add button:hover{background:#1f3a5f;}
  .notes .add button:disabled{background:#bbb;cursor:not-allowed;}
+ /* 편집자 선택 모달 */
+ .modal-bg{position:fixed;inset:0;background:rgba(20,30,50,.55);display:none;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(2px);}
+ .modal-bg.show{display:flex;}
+ .modal{background:#fff;border-radius:10px;padding:28px 32px;max-width:380px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,.25);text-align:center;}
+ .modal h2{color:#1f3a5f;margin:0 0 6px;font-size:20px;border:0;padding:0;}
+ .modal .sub{color:#666;font-size:13px;margin-bottom:18px;}
+ .modal .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+ .modal .btns button{padding:14px 10px;background:#f4f7fb;border:1.5px solid #d8dee8;border-radius:6px;font-size:14px;cursor:pointer;font-weight:600;color:#222;font-family:inherit;}
+ .modal .btns button:hover{background:#2c5b9c;color:#fff;border-color:#2c5b9c;}
  .toolbar{position:sticky;top:0;background:#fff;padding:10px 0;border-bottom:1px solid #d8dee8;display:flex;gap:8px;align-items:center;z-index:10;}
  .toolbar button{padding:7px 14px;background:#2c5b9c;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:13px;}
  .toolbar button.sec{background:#888;}
@@ -53,6 +62,16 @@
 </style></head><body><div class="wrap">
 <header><h1>ERP ↔ 통합 가이드 v2 용어 비교</h1>
 <div class="sub">출처: erp.hanasm.kr/AdminManager/GsItemList.php 드롭다운 마스터 vs 통합 가이드 v2 (코드 제외판) · 2026-06-01</div></header>
+<div class="modal-bg" id="editorModal"><div class="modal">
+ <h2>편집자를 선택해주세요</h2>
+ <div class="sub">입력 내용에 누가 작성했는지 자동 기록됩니다.</div>
+ <div class="btns">
+  <button data-name="박상준 차장">박상준 차장</button>
+  <button data-name="송기용 팀장">송기용 팀장</button>
+  <button data-name="천현정 차장">천현정 차장</button>
+  <button data-name="강두원 팀장">강두원 팀장</button>
+ </div>
+</div></div>
 <div class="body">
 <div class="toolbar">
  <label style="font-size:13px;color:#555;">편집자:
@@ -250,12 +269,13 @@ function tick(msg){ status().textContent = msg + ' · ' + new Date().toLocaleTim
 // 디바운스 저장 (필드 단위: draft 또는 final)
 const timers = {};
 function saveCell(key, field, group, erp, value){
+  if(!getEditor()){ openEditorModal(); return; }
   const t = key + '::' + field;
   clearTimeout(timers[t]);
   timers[t] = setTimeout(async ()=>{
     try{
       const ref = doc(db, COL, key);
-      const editor = getEditor() || '미지정';
+      const editor = getEditor();
       const payload = { group, erp, updatedAt: serverTimestamp(), updatedBy: editor };
       if(value.trim()===''){
         payload[field] = deleteField();
@@ -272,11 +292,46 @@ function saveCell(key, field, group, erp, value){
   }, 350);
 }
 
+// 편집자 선택 모달
+let pendingFocusEl = null;
+function openEditorModal(target){
+  pendingFocusEl = target || null;
+  document.getElementById('editorModal').classList.add('show');
+}
+function closeEditorModal(){
+  document.getElementById('editorModal').classList.remove('show');
+  if(pendingFocusEl){ try{ pendingFocusEl.focus(); }catch(e){} pendingFocusEl=null; }
+}
+function ensureEditor(target){
+  if(getEditor()) return true;
+  openEditorModal(target);
+  return false;
+}
+
 function init(){
+  // 모달 버튼 핸들러
+  document.querySelectorAll('#editorModal .btns button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const name = b.dataset.name;
+      setEditor(name);
+      const ed = document.getElementById('editor');
+      ed.value = name;
+      tick('편집자 설정: '+name);
+      closeEditorModal();
+    });
+  });
+
   // 이름 드롭다운 복원
   const ed = document.getElementById('editor');
   ed.value = getEditor();
   ed.addEventListener('change', ()=>{ setEditor(ed.value); tick('편집자 설정: '+(ed.value||'미지정')); });
+
+  // 입력 시도 가로채기 — input.dec, textarea가 포커스되는 순간 미선택이면 모달
+  document.querySelectorAll('input.dec, .notes textarea').forEach(el=>{
+    el.addEventListener('focus', ()=>{
+      if(!getEditor()){ el.blur(); openEditorModal(el); }
+    });
+  });
 
   // 입력 핸들러
   document.querySelectorAll('input.dec').forEach(i=>{
@@ -322,7 +377,7 @@ function init(){
     });
     btn.addEventListener('click', async ()=>{
       const editor = getEditor();
-      if(!editor){ alert('편집자를 먼저 선택해주세요.'); document.getElementById('editor').focus(); return; }
+      if(!editor){ openEditorModal(ta); return; }
       const text = ta.value.trim();
       if(!text) return;
       btn.disabled = true;
