@@ -34,9 +34,21 @@
 <div class="sub">출처: erp.hanasm.kr/AdminManager/GsItemList.php 드롭다운 마스터 vs 통합 가이드 v2 (코드 제외판) · 2026-06-01</div></header>
 <div class="body">
 <div class="toolbar">
+ <label style="font-size:13px;color:#555;">편집자:
+  <select id="editor" style="padding:5px 8px;border:1px solid #bcd;border-radius:4px;font-size:13px;margin-right:8px;">
+   <option value="">선택</option>
+   <option>박상준 차장</option>
+   <option>황국인 과장</option>
+   <option>김은혜 주임</option>
+   <option>홍재이 주임</option>
+   <option>임정민 주임</option>
+   <option>천현정 차장</option>
+   <option>기타</option>
+  </select>
+ </label>
  <button onclick="exportCSV()">📥 결정값 CSV 내보내기</button>
- <button class="sec" onclick="clearAll()">🗑️ 입력값 전체 지우기</button>
- <span class="status" id="status">자동 저장됨 (브라우저)</span>
+ <button class="sec" onclick="clearAll()">🗑️ 전체 지우기</button>
+ <span class="status"><span id="cnt" style="margin-right:10px;color:#2c5b9c;font-weight:600;">0건 입력됨</span><span id="status">연결 중...</span></span>
 </div>
 
 <h2>1. 사용장비 (Machine)</h2>
@@ -170,33 +182,110 @@
  <li><b>두께·옵션 분리</b> — 포맥스1T~5T처럼 자재명+두께를 같은 셀에 둠. 표준화 시 자재명/두께 필드 분리 권장.</li>
  <li><b>비인쇄 자재(스텐·HDPE·ABS 등)</b>는 가이드 범위 외 — ERP 운영에는 유지하되 가이드와 분리.</li>
 </ul></div></div>
-<script>
-const LS_KEY='hanasm_erp_decisions_v1';
-function load(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'{}')}catch(e){return{}}}
-function save(o){localStorage.setItem(LS_KEY,JSON.stringify(o));const s=document.getElementById('status');s.textContent='저장됨 · '+new Date().toLocaleTimeString();}
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAy0FDC3m6uk85QRU31fA8bYkcYcokYapY",
+  authDomain: "hanasm-cs-meeting-6467a.firebaseapp.com",
+  projectId: "hanasm-cs-meeting-6467a",
+  storageBucket: "hanasm-cs-meeting-6467a.firebasestorage.app",
+  messagingSenderId: "260114963053",
+  appId: "1:260114963053:web:6d08adced543a0456afd64"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const COL = 'erp_terminology';
+
+const NAME_KEY='hanasm_erp_editor';
+function getEditor(){ return localStorage.getItem(NAME_KEY)||''; }
+function setEditor(v){ localStorage.setItem(NAME_KEY,v); }
+
+const status = ()=>document.getElementById('status');
+function tick(msg){ status().textContent = msg + ' · ' + new Date().toLocaleTimeString(); }
+
+// 디바운스 저장
+const timers = {};
+function saveCell(key, group, erp, value){
+  clearTimeout(timers[key]);
+  timers[key] = setTimeout(async ()=>{
+    try{
+      if(value.trim()===''){
+        await deleteDoc(doc(db, COL, key));
+      } else {
+        await setDoc(doc(db, COL, key), {
+          group, erp, value: value.trim(),
+          updatedAt: serverTimestamp(),
+          updatedBy: getEditor() || '미지정'
+        });
+      }
+      tick('☁️ 저장됨');
+    }catch(e){ tick('⚠️ 저장실패: '+e.code); console.error(e); }
+  }, 350);
+}
+
 function init(){
-  const data=load();
+  // 이름 드롭다운 복원
+  const ed = document.getElementById('editor');
+  ed.value = getEditor();
+  ed.addEventListener('change', ()=>{ setEditor(ed.value); tick('편집자 설정: '+(ed.value||'미지정')); });
+
+  // 입력 핸들러
   document.querySelectorAll('input.dec').forEach(i=>{
-    const k=i.dataset.key;
-    if(data[k]) i.value=data[k];
-    i.addEventListener('input',()=>{const d=load();if(i.value.trim()){d[k]=i.value.trim()}else{delete d[k]}save(d);});
+    i.addEventListener('input', ()=>{
+      saveCell(i.dataset.key, i.dataset.group, i.dataset.erp, i.value);
+    });
   });
+
+  // 실시간 구독
+  onSnapshot(collection(db, COL), (snap)=>{
+    const m = {};
+    snap.forEach(d=>{ m[d.id] = d.data(); });
+    document.querySelectorAll('input.dec').forEach(i=>{
+      const k = i.dataset.key;
+      if(m[k]){
+        if(document.activeElement!==i) i.value = m[k].value || '';
+        i.title = '편집: '+(m[k].updatedBy||'')+' · '+(m[k].updatedAt?.toDate?.()?.toLocaleString()||'');
+      } else {
+        if(document.activeElement!==i) i.value = '';
+        i.title='';
+      }
+    });
+    const cnt = Object.keys(m).length;
+    document.getElementById('cnt').textContent = cnt + '건 입력됨';
+  }, err=>{ tick('⚠️ 동기화실패: '+err.code); });
+
+  tick('☁️ Firebase 연결됨');
 }
-function exportCSV(){
-  const data=load();
-  const rows=[['분류','ERP명칭','최종결정']];
-  document.querySelectorAll('input.dec').forEach(i=>{
-    const v=(data[i.dataset.key]||'').trim();
-    if(v) rows.push([i.dataset.group,i.dataset.erp,v]);
+
+window.exportCSV = async function(){
+  const snap = await getDocs(collection(db, COL));
+  const rows = [['분류','ERP명칭','최종결정','편집자','수정시각']];
+  snap.forEach(d=>{
+    const x = d.data();
+    rows.push([x.group||'', x.erp||'', x.value||'', x.updatedBy||'',
+      x.updatedAt?.toDate?.()?.toLocaleString() || '']);
   });
-  if(rows.length===1){alert('입력된 결정값이 없습니다.');return;}
-  const csv='\ufeff'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='ERP_용어_최종결정_'+new Date().toISOString().slice(0,10)+'.csv';
+  if(rows.length===1){ alert('입력된 결정값이 없습니다.'); return; }
+  const csv = '\ufeff' + rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ERP_용어_최종결정_'+new Date().toISOString().slice(0,10)+'.csv';
   a.click();
-}
-function clearAll(){if(confirm('입력값 전체 지웁니다. 진행할까요?')){localStorage.removeItem(LS_KEY);document.querySelectorAll('input.dec').forEach(i=>{i.value=''});document.getElementById('status').textContent='전체 삭제됨';}}
-init();
+};
+
+window.clearAll = async function(){
+  if(!confirm('Firebase의 모든 입력값을 지웁니다 (모두에게 반영). 진행할까요?')) return;
+  const snap = await getDocs(collection(db, COL));
+  const dels = [];
+  snap.forEach(d=>dels.push(deleteDoc(doc(db, COL, d.id))));
+  await Promise.all(dels);
+  tick('전체 삭제됨');
+};
+
+document.addEventListener('DOMContentLoaded', init);
+if(document.readyState!=='loading') init();
 </script>
 </body></html>
