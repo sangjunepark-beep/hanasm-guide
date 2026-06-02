@@ -435,7 +435,10 @@ function ensureEditor(target){
   return false;
 }
 
+let _inited=false;
 function init(){
+  if(_inited) return;   // 중복 실행 방지 (DOMContentLoaded + readyState 이중 호출 → 비고 2번 저장 버그)
+  _inited=true;
   // 모달 버튼 핸들러
   document.querySelectorAll('#editorModal .btns button').forEach(b=>{
     b.addEventListener('click', ()=>{
