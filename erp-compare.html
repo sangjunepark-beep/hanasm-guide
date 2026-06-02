@@ -151,6 +151,17 @@
 
 <h2>2. 공정 (StageJus — 인쇄·재단 공정)</h2>
 <p class="lead">ERP 공정 드롭다운 상위 15개(외주업체명 제외) — 인쇄/재단 공정 매핑.</p>
+<div style="background:#f4f7fb;border:1px solid #cdd8e6;border-left:5px solid #2c5b9c;border-radius:6px;padding:14px 16px;margin:10px 0 14px;">
+ <div style="font-size:14px;font-weight:600;color:#1f3a5f;margin-bottom:10px;">생산 공정 흐름 (자재·인쇄 방식별 순서)</div>
+ <div style="display:flex;flex-direction:column;gap:7px;font-size:13.5px;line-height:1.6;">
+  <div><b style="display:inline-block;min-width:84px;color:#2c5b9c;">솔벤 인쇄</b> <span style="color:#aaa;">›</span> 후가공 <span style="color:#aaa;">›</span> 준드재단 <span style="color:#aaa;">›</span> 포장</div>
+  <div><b style="display:inline-block;min-width:84px;color:#2c5b9c;">라텍스 인쇄</b> <span style="color:#aaa;">›</span> 후가공 <span style="color:#aaa;">›</span> 시나젯 <span style="color:#aaa;">›</span> 포장</div>
+  <div><b style="display:inline-block;min-width:84px;color:#2c5b9c;">수성 출력</b> <span style="color:#aaa;">›</span> 후가공 <span style="color:#aaa;">›</span> 준드재단 <span style="color:#aaa;">›</span> 포장</div>
+  <div><b style="display:inline-block;min-width:84px;color:#2c5b9c;">레이저 재단</b> <span style="color:#aaa;">›</span> 후가공 <span style="color:#aaa;">›</span> 포장</div>
+  <div><b style="display:inline-block;min-width:84px;color:#2c5b9c;">슈마</b> <span style="color:#aaa;">›</span> 후가공 <span style="color:#aaa;">›</span> 포장</div>
+  <div><b style="display:inline-block;min-width:84px;color:#2c5b9c;">DTF 스티커</b> <span style="color:#aaa;">›</span> 후가공 <span style="color:#aaa;">›</span> 포장</div>
+ </div>
+</div>
 <div class="stat"><span class="ok">표준 매핑 OK 8</span><span class="warn">가이드 누락 7</span><span class="oos">비공정/공장 0</span></div>
 <table><tr><th style="width:16%">ERP 명칭</th><th style="width:30%">가이드 표준명</th><th style="width:27%">1차 수정안</th><th>최종 협의안</th></tr>
 <tr class="ok"><td>UV인쇄</td><td>UV평판 직인쇄</td><td class="cell"><input class="dec" data-key="stage::UV인쇄" data-field="draft" data-group="stage" data-erp="UV인쇄" data-mp="UV평판 직인쇄" placeholder="1차 수정안"><div class="meta" data-meta-key="stage::UV인쇄" data-meta-field="draft"></div></td><td class="cell"><input class="dec final" data-key="stage::UV인쇄" data-field="final" data-group="stage" data-erp="UV인쇄" data-mp="UV평판 직인쇄" placeholder="최종 협의안"><div class="meta" data-meta-key="stage::UV인쇄" data-meta-field="final"></div></td></tr>
