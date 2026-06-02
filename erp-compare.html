@@ -7,15 +7,15 @@
  header h1{margin:0;font-size:26px;}
  header .sub{font-size:14px;opacity:.9;margin-top:6px;}
  .body{padding:24px 42px;}
- h2{font-size:19px;color:#1f3a5f;border-left:5px solid #2c5b9c;padding-left:10px;margin:30px 0 10px;}
+ h2{font-size:19px;color:#1f3a5f;border-left:5px solid #2c5b9c;padding-left:10px;margin:38px 0 14px;}
  p.lead{color:#555;font-size:13.5px;margin:4px 0 12px;}
- table{width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:13.5px;}
- th,td{border:1px solid #d8dee8;padding:5px 8px;text-align:left;vertical-align:middle;line-height:1.4;}
+ table{width:100%;border-collapse:collapse;margin:8px 0 24px;font-size:13.5px;}
+ th,td{border:1px solid #d8dee8;padding:9px 11px;text-align:left;vertical-align:middle;line-height:1.55;}
  th{background:#1f3a5f;color:#fff;padding:8px 10px;}
  tr.ok td{background:#f4faf4;}
  tr.warn td{background:#fff4e5;}
  tr.oos td{background:#f0f0f0;color:#777;}
- td:has(input.dec){padding:3px 5px;}
+ td:has(input.dec){padding:6px 7px;}
  .stat{display:flex;gap:10px;margin:6px 0 14px;font-size:13px;}
  .stat span{padding:3px 10px;border-radius:4px;}
  .stat .ok{background:#cfe8d2;}
@@ -23,20 +23,20 @@
  .stat .oos{background:#e0e0e0;color:#555;}
  .miss{background:#fff4e5;border:1px solid #e8a13a;border-radius:6px;padding:12px 16px;font-size:13.5px;margin:12px 0;}
  .factory{font-size:12.5px;color:#666;background:#f7f7f7;border-radius:6px;padding:10px 14px;margin:10px 0;}
- input.dec{width:100%;box-sizing:border-box;border:1px solid #c8d4e0;border-radius:3px;padding:3px 6px;font-size:13px;font-family:inherit;background:#fffef5;height:26px;}
+ input.dec{width:100%;box-sizing:border-box;border:1px solid #c8d4e0;border-radius:3px;padding:6px 9px;font-size:13.5px;font-family:inherit;background:#fffef5;height:32px;}
  input.dec:focus{outline:none;border-color:#2c5b9c;background:#fff;box-shadow:0 0 0 2px rgba(44,91,156,.12);}
  input.dec.final{background:#f4fbf4;border-color:#bcd4bc;}
  input.dec.final:focus{border-color:#3a7a3a;box-shadow:0 0 0 2px rgba(58,122,58,.15);}
  input.dec[data-saved="1"]{border-color:#3a7a3a;}
- td.cell{padding:3px 5px;}
- td.cell .meta{font-size:10.5px;color:#888;margin-top:2px;line-height:1.25;min-height:13px;}
+ td.cell{padding:6px 7px;}
+ td.cell .meta{font-size:11px;color:#888;margin-top:4px;line-height:1.35;min-height:14px;}
  td.cell .meta b{color:#2c5b9c;font-weight:600;}
  td.cell .meta.final b{color:#1d6b1d;}
  .notes{background:#fafbfc;border:1px solid #d8dee8;border-radius:8px;padding:14px 16px;margin:10px 0 24px;}
  .notes h3{margin:0 0 10px;color:#1f3a5f;font-size:14.5px;display:flex;align-items:center;gap:6px;}
  .notes h3 .badge{background:#2c5b9c;color:#fff;font-size:11px;padding:1px 7px;border-radius:10px;font-weight:600;}
- .notes .entries{max-height:260px;overflow-y:auto;margin-bottom:10px;}
- .notes .entry{background:#fff;border:1px solid #e5e9ef;border-radius:5px;padding:7px 11px;margin:5px 0;font-size:13px;line-height:1.5;}
+ .notes .entries{max-height:460px;overflow-y:auto;margin-bottom:10px;}
+ .notes .entry{background:#fff;border:1px solid #e5e9ef;border-radius:5px;padding:11px 14px;margin:9px 0;font-size:13px;line-height:1.55;}
  .notes .entry .meta{color:#666;font-size:11.5px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center;}
  .notes .entry .meta b{color:#2c5b9c;}
  .notes .entry .text{color:#222;white-space:pre-wrap;word-break:break-word;}
@@ -49,6 +49,19 @@
  .notes .add button{padding:8px 16px;background:#2c5b9c;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:13px;white-space:nowrap;height:fit-content;align-self:flex-start;}
  .notes .add button:hover{background:#1f3a5f;}
  .notes .add button:disabled{background:#bbb;cursor:not-allowed;}
+ .notes .entry .replies{margin:8px 0 2px 16px;border-left:2px solid #dbe2ec;padding-left:12px;display:flex;flex-direction:column;gap:6px;}
+ .notes .entry .reply{font-size:12.5px;line-height:1.55;color:#333;display:flex;gap:7px;align-items:baseline;}
+ .notes .entry .reply .rmeta{color:#8a8a8a;font-size:11px;white-space:nowrap;flex-shrink:0;}
+ .notes .entry .reply .rmeta b{color:#2c5b9c;font-weight:600;}
+ .notes .entry .reply .rtext{flex:1;white-space:pre-wrap;word-break:break-word;}
+ .notes .entry .reply .rdel{background:none;border:0;color:#c44;cursor:pointer;font-size:10.5px;padding:0 2px;flex-shrink:0;}
+ .notes .entry .reply .rdel:hover{text-decoration:underline;}
+ .notes .entry .reply-add{display:flex;gap:7px;margin:8px 0 2px 16px;}
+ .notes .entry .reply-add input{flex:1;border:1px solid #d0d8e2;border-radius:4px;padding:7px 10px;font-family:inherit;font-size:12.5px;background:#fff;}
+ .notes .entry .reply-add input:focus{outline:none;border-color:#2c5b9c;box-shadow:0 0 0 2px rgba(44,91,156,.12);}
+ .notes .entry .reply-add button{padding:7px 14px;background:#5a7fb5;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:12px;white-space:nowrap;}
+ .notes .entry .reply-add button:hover{background:#2c5b9c;}
+ .notes .entry .reply-add button:disabled{background:#bbb;cursor:not-allowed;}
  /* 편집자 선택 모달 */
  .modal-bg{position:fixed;inset:0;background:rgba(20,30,50,.55);display:none;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(2px);}
  .modal-bg.show{display:flex;}
@@ -536,31 +549,69 @@ function init(){
       }catch(e){ tick('⚠️ 비고 저장실패: '+e.code); console.error(e); }
       finally{ btn.disabled = false; }
     });
-    // 구독
+    // 구독 (비고+댓글 같은 컬렉션 저장: 댓글은 parentId 보유 → 중첩 권한 불필요)
+    const fmtNoteTs = (ts)=>{ const dt=ts?.toDate?.(); return dt ? `${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}` : '저장 중…'; };
     const q = query(collection(db, 'erp_notes', section, 'entries'), orderBy('ts','asc'));
     onSnapshot(q, snap=>{
+      const all=[]; snap.forEach(d=>all.push(Object.assign({id:d.id}, d.data())));
+      const tops = all.filter(e=>!e.parentId);
+      const repliesBy = {};
+      all.filter(e=>e.parentId).forEach(r=>{ (repliesBy[r.parentId]=repliesBy[r.parentId]||[]).push(r); });
       const wrap = box.querySelector('.entries');
-      if(snap.empty){
+      if(tops.length===0){
         wrap.innerHTML = '<div class="empty">아직 비고가 없습니다. 첫 의견을 남겨주세요.</div>';
       } else {
         wrap.innerHTML = '';
-        snap.forEach(d=>{
-          const x = d.data();
-          const dt = x.ts?.toDate?.();
-          const stamp = dt ? `${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}` : '저장 중…';
+        tops.forEach(x=>{
           const div = document.createElement('div');
           div.className='entry';
-          div.innerHTML = `<div class="meta"><span>[${stamp}] <b>${escapeHtml(x.editor||'')}</b></span><button class="del" title="삭제">✕</button></div><div class="text">${escapeHtml(x.text||'')}</div>`;
+          div.innerHTML = `<div class="meta"><span>[${fmtNoteTs(x.ts)}] <b>${escapeHtml(x.editor||'')}</b></span><button class="del" title="삭제">✕</button></div>`
+            + `<div class="text">${escapeHtml(x.text||'')}</div>`
+            + `<div class="replies"></div>`
+            + `<div class="reply-add"><input class="reply-input" placeholder="↳ 댓글·수정사항 입력 (Enter 등록, 편집자 선택 필수)"><button class="reply-btn">댓글</button></div>`;
+          // 비고 삭제 (달린 댓글도 함께)
           div.querySelector('.del').addEventListener('click', async ()=>{
-            if(!confirm('이 비고를 삭제할까요?')) return;
-            try{ await deleteDoc(doc(db, 'erp_notes', section, 'entries', d.id)); }
-            catch(e){ tick('⚠️ 삭제실패: '+e.code); }
+            if(!confirm('이 비고를 삭제할까요? (달린 댓글도 함께 사라집니다)')) return;
+            try{
+              for(const r of (repliesBy[x.id]||[])) await deleteDoc(doc(db,'erp_notes',section,'entries',r.id));
+              await deleteDoc(doc(db,'erp_notes',section,'entries',x.id));
+            }catch(e){ tick('⚠️ 삭제실패: '+e.code); }
           });
+          // 댓글 렌더
+          const rWrap = div.querySelector('.replies');
+          (repliesBy[x.id]||[]).forEach(r=>{
+            const rDiv = document.createElement('div');
+            rDiv.className='reply';
+            rDiv.innerHTML = `<span class="rmeta">[${fmtNoteTs(r.ts)}] <b>${escapeHtml(r.editor||'')}</b></span><span class="rtext">${escapeHtml(r.text||'')}</span><button class="rdel" title="댓글 삭제">✕</button>`;
+            rDiv.querySelector('.rdel').addEventListener('click', async ()=>{
+              if(!confirm('이 댓글을 삭제할까요?')) return;
+              try{ await deleteDoc(doc(db,'erp_notes',section,'entries',r.id)); }
+              catch(e){ tick('⚠️ 댓글 삭제실패: '+e.code); }
+            });
+            rWrap.appendChild(rDiv);
+          });
+          // 댓글 입력
+          const rInput = div.querySelector('.reply-input');
+          const rBtn = div.querySelector('.reply-btn');
+          const addReply = async ()=>{
+            const editor = getEditor();
+            if(!editor){ openEditorModal(rInput); return; }
+            const text = rInput.value.trim();
+            if(!text) return;
+            rBtn.disabled = true;
+            try{
+              await addDoc(collection(db,'erp_notes',section,'entries'), { editor, text, ts: serverTimestamp(), parentId: x.id });
+              rInput.value='';
+            }catch(e){ tick('⚠️ 댓글 저장실패: '+e.code); console.error(e); }
+            finally{ rBtn.disabled = false; }
+          };
+          rBtn.addEventListener('click', addReply);
+          rInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addReply(); } });
           wrap.appendChild(div);
         });
         wrap.scrollTop = wrap.scrollHeight;
       }
-      box.querySelector('.badge').textContent = snap.size;
+      box.querySelector('.badge').textContent = tops.length;
     });
   });
 
