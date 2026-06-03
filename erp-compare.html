@@ -2,7 +2,7 @@
 <title>ERP ↔ 가이드 v2 용어 비교</title>
 <style>
  body{font-family:"Malgun Gothic",sans-serif;color:#222;background:#eef1f5;margin:0;}
- .wrap{max-width:1100px;margin:0 auto;background:#fff;padding:0 0 40px;}
+ .wrap{max-width:1320px;margin:0 auto;background:#fff;padding:0 0 40px;}
  header{background:linear-gradient(135deg,#1f3a5f,#2c5b9c);color:#fff;padding:34px 42px;}
  header h1{margin:0;font-size:26px;}
  header .sub{font-size:14px;opacity:.9;margin-top:6px;}
@@ -105,6 +105,21 @@
  .toolbar button.sec{background:#888;}
  .toolbar button:hover{opacity:.9;}
  .toolbar .status{color:#666;font-size:12.5px;margin-left:auto;}
+ /* ===== v2 (2026-06-03): 단락별 우측 메모 레이아웃 + 분류별 항목 추가 ===== */
+ .section{display:flex;gap:22px;align-items:flex-start;}
+ .section-main{flex:1 1 auto;min-width:0;}
+ .section-aside{flex:0 0 330px;position:sticky;top:58px;align-self:flex-start;max-height:calc(100vh - 74px);overflow:auto;}
+ .section-aside .notes{margin:0;}
+ .add-row-btn{display:inline-block;margin:0 0 24px;padding:8px 16px;background:#fff;color:#2c5b9c;border:1.5px dashed #2c5b9c;border-radius:6px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:600;}
+ .add-row-btn:hover{background:#2c5b9c;color:#fff;}
+ tr.custom-row td{background:#fffdf3;}
+ .cust-tag{display:inline-block;margin-left:5px;font-size:10.5px;background:#e8a13a;color:#fff;border-radius:8px;padding:1px 6px;vertical-align:middle;}
+ .del-row{margin-left:6px;background:none;border:0;color:#c44;cursor:pointer;font-size:11px;vertical-align:middle;}
+ .del-row:hover{text-decoration:underline;}
+ @media (max-width:980px){
+   .section{flex-direction:column;gap:8px;}
+   .section-aside{flex:none;width:auto;position:static;max-height:none;overflow:visible;}
+ }
 </style></head><body><div class="wrap">
 <header><h1>ERP ↔ 통합 가이드 v2 용어 비교</h1>
 <div class="sub">출처: erp.hanasm.kr/AdminManager/GsItemList.php 드롭다운 마스터 vs 통합 가이드 v2 (코드 제외판) · 2026-06-01 · 🔍 검증 반영 2026-06-03 (원본 백업 별도 보관)</div></header>
@@ -476,6 +491,7 @@ let _inited=false;
 function init(){
   if(_inited) return;   // 중복 실행 방지 (DOMContentLoaded + readyState 이중 호출 → 비고 2번 저장 버그)
   _inited=true;
+  try{ layoutSections(); addRowBtns(); }catch(e){ console.error('layout v2', e); }
   // 모달 버튼 핸들러
   document.querySelectorAll('#editorModal .btns button').forEach(b=>{
     b.addEventListener('click', ()=>{
@@ -514,6 +530,7 @@ function init(){
       m[d.id] = d.data();
       lastSnap[d.id] = { draft: d.data().draft||'', final: d.data().final||'' };
     });
+    try{ renderOrphanRows(m); }catch(e){ console.error('orphan v2', e); }
     let drafts=0, finals=0; const _counted=new Set();
     document.querySelectorAll('input.dec').forEach(i=>{
       const k = i.dataset.key, f = i.dataset.field;
@@ -642,6 +659,106 @@ function init(){
   tick('☁️ Firebase 연결됨');
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+/* ===== v2 (2026-06-03): 단락별 우측 메모 레이아웃 + 분류별 항목 추가 ===== */
+function layoutSections(){
+  const body = document.querySelector('.body');
+  if(!body || body.dataset.laidOut) return;
+  body.dataset.laidOut = '1';
+  const sections = [];
+  [...body.children].forEach(node=>{
+    if(node.tagName==='H2') sections.push([node]);
+    else if(sections.length) sections[sections.length-1].push(node);
+  });
+  sections.forEach(nodes=>{
+    const sec=document.createElement('div'); sec.className='section';
+    const main=document.createElement('div'); main.className='section-main';
+    const aside=document.createElement('div'); aside.className='section-aside';
+    body.insertBefore(sec, nodes[0]);
+    nodes.forEach(n=>{ if(n.classList && n.classList.contains('notes')) aside.appendChild(n); else main.appendChild(n); });
+    sec.appendChild(main);
+    if(aside.children.length) sec.appendChild(aside);
+  });
+}
+
+const GROUP_LABEL = { machine:'사용장비', stage:'공정', material:'재질' };
+function addRowBtns(){
+  Object.keys(GROUP_LABEL).forEach(g=>{
+    const anyInput = document.querySelector('input.dec[data-group="'+g+'"]');
+    if(!anyInput) return;
+    const table = anyInput.closest('table');
+    if(!table || table.dataset.addBtn) return;
+    table.dataset.group = g; table.dataset.addBtn = '1';
+    const btn = document.createElement('button');
+    btn.type='button'; btn.className='add-row-btn';
+    btn.textContent = '+ '+GROUP_LABEL[g]+' 항목 추가';
+    btn.addEventListener('click', ()=>promptAddTerm(g));
+    table.insertAdjacentElement('afterend', btn);
+  });
+}
+
+function wireInput(inp){
+  inp.addEventListener('focus', ()=>{ if(!getEditor()){ inp.blur(); openEditorModal(inp); } });
+  inp.addEventListener('input', ()=>{ saveCell(inp.dataset.key, inp.dataset.field, inp.dataset.group, inp.dataset.erp, inp.value); });
+}
+function keySel(key){ return 'input.dec[data-key="'+String(key).replace(/"/g,'\\"')+'"]'; }
+
+function buildTermRow(group, erp, mp, custom){
+  const key = group+'::'+erp, e = escapeHtml;
+  const tr = document.createElement('tr');
+  tr.className = custom ? 'custom-row' : '';
+  tr.innerHTML =
+    '<td>'+e(erp)+(custom?' <span class="cust-tag">신규</span> <button type="button" class="del-row" title="이 행 삭제">✕</button>':'')+'</td>'+
+    '<td>'+e(mp||'')+'</td>'+
+    '<td class="cell"><input class="dec" data-key="'+e(key)+'" data-field="draft" data-group="'+e(group)+'" data-erp="'+e(erp)+'" data-mp="'+e(mp||'')+'" placeholder="1차 수정안"><div class="meta" data-meta-key="'+e(key)+'" data-meta-field="draft"></div></td>'+
+    '<td class="cell"><input class="dec final" data-key="'+e(key)+'" data-field="final" data-group="'+e(group)+'" data-erp="'+e(erp)+'" data-mp="'+e(mp||'')+'" placeholder="최종 협의안"><div class="meta" data-meta-key="'+e(key)+'" data-meta-field="final"></div></td>';
+  tr.querySelectorAll('input.dec').forEach(wireInput);
+  const del = tr.querySelector('.del-row');
+  if(del) del.addEventListener('click', ()=>deleteTerm(group, erp, tr));
+  return tr;
+}
+
+async function promptAddTerm(group){
+  if(!getEditor()){ openEditorModal(); return; }
+  let erp = prompt('추가할 '+GROUP_LABEL[group]+' ERP 명칭:');
+  if(erp===null) return;
+  erp = erp.trim(); if(!erp) return;
+  if(erp.indexOf('/')>=0){ alert('명칭에 "/" 는 쓸 수 없습니다.'); return; }
+  const key = group+'::'+erp;
+  if(document.querySelector(keySel(key))){ alert('이미 있는 항목: '+erp); return; }
+  let mp = (prompt('가이드 표준명 (선택, 없으면 비워두기):','')||'').trim();
+  const table = document.querySelector('table[data-group="'+group+'"]');
+  if(!table) return;
+  (table.tBodies[0]||table).appendChild(buildTermRow(group, erp, mp, true));
+  try{
+    await setDoc(doc(db, COL, key), { group, erp, mp, custom:true, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+    await addDoc(collection(db,'erp_term_logs'), { key, group, erp, field:'(행추가)', before:'', after:erp, action:'add-term', editor:getEditor(), ts: serverTimestamp() });
+    tick('➕ 항목 추가: '+erp);
+  }catch(e){ tick('⚠️ 추가실패: '+e.code); console.error(e); }
+}
+
+async function deleteTerm(group, erp, tr){
+  if(!getEditor()){ openEditorModal(); return; }
+  if(!confirm('"'+erp+'" 항목을 삭제할까요? (모두에게 반영, 입력값도 삭제)')) return;
+  const key = group+'::'+erp;
+  try{
+    await deleteDoc(doc(db, COL, key));
+    await addDoc(collection(db,'erp_term_logs'), { key, group, erp, field:'(행삭제)', before:erp, after:'', action:'del-term', editor:getEditor(), ts: serverTimestamp() });
+    if(tr && tr.parentNode) tr.parentNode.removeChild(tr);
+    tick('🗑️ 항목 삭제: '+erp);
+  }catch(e){ tick('⚠️ 삭제실패: '+e.code); console.error(e); }
+}
+
+function renderOrphanRows(m){
+  Object.keys(m).forEach(key=>{
+    const d = m[key];
+    if(!d || !d.group || !GROUP_LABEL[d.group]) return;
+    if(document.querySelector(keySel(key))) return;
+    const table = document.querySelector('table[data-group="'+d.group+'"]');
+    if(!table) return;
+    (table.tBodies[0]||table).appendChild(buildTermRow(d.group, d.erp||String(key).split('::')[1]||key, d.mp||'', true));
+  });
+}
 
 window.exportCSV = async function(){
   const snap = await getDocs(collection(db, COL));
