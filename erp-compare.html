@@ -112,10 +112,15 @@
  .section-aside .notes{margin:0;}
  .add-row-btn{display:inline-block;margin:0 0 24px;padding:8px 16px;background:#fff;color:#2c5b9c;border:1.5px dashed #2c5b9c;border-radius:6px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:600;}
  .add-row-btn:hover{background:#2c5b9c;color:#fff;}
- tr.custom-row td{background:#fffdf3;}
- .cust-tag{display:inline-block;margin-left:5px;font-size:10.5px;background:#e8a13a;color:#fff;border-radius:8px;padding:1px 6px;vertical-align:middle;}
+ tr.custom-row td{background:#fdecec;color:#a02020;}
+ tr.custom-row td:first-child{font-weight:600;}
+ tr.custom-row td input.dec{background:#fff5f5;border-color:#e0a0a0;}
+ tr.custom-row td input.dec.final{background:#fdeaea;border-color:#d88080;}
+ .cust-tag{display:inline-block;margin-left:5px;font-size:10.5px;background:#c0392b;color:#fff;border-radius:8px;padding:1px 7px;vertical-align:middle;font-weight:700;letter-spacing:.2px;}
  .del-row{margin-left:6px;background:none;border:0;color:#c44;cursor:pointer;font-size:11px;vertical-align:middle;}
  .del-row:hover{text-decoration:underline;}
+ .subgroup-add-btn{margin-left:10px;padding:2px 9px;background:rgba(255,255,255,.75);color:inherit;border:1px dashed currentColor;border-radius:4px;cursor:pointer;font-size:11px;font-family:inherit;font-weight:600;vertical-align:middle;opacity:.85;line-height:1.4;}
+ .subgroup-add-btn:hover{opacity:1;background:#fff;}
  @media (max-width:980px){
    .section{flex-direction:column;gap:8px;}
    .section-aside{flex:none;width:auto;position:static;max-height:none;overflow:visible;}
@@ -682,6 +687,7 @@ function layoutSections(){
 }
 
 const GROUP_LABEL = { machine:'사용장비', stage:'공정', material:'재질' };
+function normSubgroup(s){ return String(s||'').replace(/\s*\(\d+\)\s*$/,'').trim(); }
 function addRowBtns(){
   Object.keys(GROUP_LABEL).forEach(g=>{
     const anyInput = document.querySelector('input.dec[data-group="'+g+'"]');
@@ -689,12 +695,40 @@ function addRowBtns(){
     const table = anyInput.closest('table');
     if(!table || table.dataset.addBtn) return;
     table.dataset.group = g; table.dataset.addBtn = '1';
-    const btn = document.createElement('button');
-    btn.type='button'; btn.className='add-row-btn';
-    btn.textContent = '+ '+GROUP_LABEL[g]+' 항목 추가';
-    btn.addEventListener('click', ()=>promptAddTerm(g));
-    table.insertAdjacentElement('afterend', btn);
+    const seps = table.querySelectorAll('tr.flowsep');
+    if(seps.length){
+      seps.forEach(sep=>{
+        const td = sep.querySelector('td'); if(!td) return;
+        const sub = normSubgroup(td.textContent);
+        sep.dataset.subgroup = sub;
+        const btn = document.createElement('button');
+        btn.type='button'; btn.className='subgroup-add-btn';
+        btn.textContent = '+ 항목 추가';
+        btn.addEventListener('click', e=>{ e.stopPropagation(); promptAddTerm(g, sub); });
+        td.appendChild(document.createTextNode(' '));
+        td.appendChild(btn);
+      });
+    } else {
+      const btn = document.createElement('button');
+      btn.type='button'; btn.className='add-row-btn';
+      btn.textContent = '+ '+GROUP_LABEL[g]+' 항목 추가';
+      btn.addEventListener('click', ()=>promptAddTerm(g, ''));
+      table.insertAdjacentElement('afterend', btn);
+    }
   });
+}
+function insertCustomRow(table, subgroup, tr){
+  let sep = null;
+  if(subgroup){
+    table.querySelectorAll('tr.flowsep').forEach(s=>{
+      if(!sep && s.dataset.subgroup===subgroup) sep = s;
+    });
+  }
+  if(!sep){ (table.tBodies[0]||table).appendChild(tr); return; }
+  let next = sep.nextElementSibling;
+  while(next && !next.classList.contains('flowsep')) next = next.nextElementSibling;
+  if(next) next.parentNode.insertBefore(tr, next);
+  else (table.tBodies[0]||table).appendChild(tr);
 }
 
 function wireInput(inp){
@@ -703,12 +737,13 @@ function wireInput(inp){
 }
 function keySel(key){ return 'input.dec[data-key="'+String(key).replace(/"/g,'\\"')+'"]'; }
 
-function buildTermRow(group, erp, mp, custom){
+function buildTermRow(group, erp, mp, custom, subgroup){
   const key = group+'::'+erp, e = escapeHtml;
   const tr = document.createElement('tr');
   tr.className = custom ? 'custom-row' : '';
+  if(subgroup) tr.dataset.subgroup = subgroup;
   tr.innerHTML =
-    '<td>'+e(erp)+(custom?' <span class="cust-tag">신규</span> <button type="button" class="del-row" title="이 행 삭제">✕</button>':'')+'</td>'+
+    '<td>'+e(erp)+(custom?' <span class="cust-tag">신규 항목</span> <button type="button" class="del-row" title="이 행 삭제">✕</button>':'')+'</td>'+
     '<td>'+e(mp||'')+'</td>'+
     '<td class="cell"><input class="dec" data-key="'+e(key)+'" data-field="draft" data-group="'+e(group)+'" data-erp="'+e(erp)+'" data-mp="'+e(mp||'')+'" placeholder="1차 수정안"><div class="meta" data-meta-key="'+e(key)+'" data-meta-field="draft"></div></td>'+
     '<td class="cell"><input class="dec final" data-key="'+e(key)+'" data-field="final" data-group="'+e(group)+'" data-erp="'+e(erp)+'" data-mp="'+e(mp||'')+'" placeholder="최종 협의안"><div class="meta" data-meta-key="'+e(key)+'" data-meta-field="final"></div></td>';
@@ -718,9 +753,11 @@ function buildTermRow(group, erp, mp, custom){
   return tr;
 }
 
-async function promptAddTerm(group){
+async function promptAddTerm(group, subgroup){
   if(!getEditor()){ openEditorModal(); return; }
-  let erp = prompt('추가할 '+GROUP_LABEL[group]+' ERP 명칭:');
+  subgroup = subgroup || '';
+  const sgLabel = subgroup ? '[ '+subgroup+' ] ' : '';
+  let erp = prompt(sgLabel+'추가할 '+GROUP_LABEL[group]+' ERP 명칭:');
   if(erp===null) return;
   erp = erp.trim(); if(!erp) return;
   if(erp.indexOf('/')>=0){ alert('명칭에 "/" 는 쓸 수 없습니다.'); return; }
@@ -729,11 +766,11 @@ async function promptAddTerm(group){
   let mp = (prompt('가이드 표준명 (선택, 없으면 비워두기):','')||'').trim();
   const table = document.querySelector('table[data-group="'+group+'"]');
   if(!table) return;
-  (table.tBodies[0]||table).appendChild(buildTermRow(group, erp, mp, true));
+  insertCustomRow(table, subgroup, buildTermRow(group, erp, mp, true, subgroup));
   try{
-    await setDoc(doc(db, COL, key), { group, erp, mp, custom:true, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
-    await addDoc(collection(db,'erp_term_logs'), { key, group, erp, field:'(행추가)', before:'', after:erp, action:'add-term', editor:getEditor(), ts: serverTimestamp() });
-    tick('➕ 항목 추가: '+erp);
+    await setDoc(doc(db, COL, key), { group, erp, mp, subgroup, custom:true, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+    await addDoc(collection(db,'erp_term_logs'), { key, group, erp, subgroup, field:'(행추가)', before:'', after:erp, action:'add-term', editor:getEditor(), ts: serverTimestamp() });
+    tick('➕ 신규 항목: '+erp+(subgroup?' ('+subgroup+')':''));
   }catch(e){ tick('⚠️ 추가실패: '+e.code); console.error(e); }
 }
 
@@ -756,18 +793,22 @@ function renderOrphanRows(m){
     if(document.querySelector(keySel(key))) return;
     const table = document.querySelector('table[data-group="'+d.group+'"]');
     if(!table) return;
-    (table.tBodies[0]||table).appendChild(buildTermRow(d.group, d.erp||String(key).split('::')[1]||key, d.mp||'', true));
+    const sub = d.subgroup||'';
+    insertCustomRow(table, sub, buildTermRow(d.group, d.erp||String(key).split('::')[1]||key, d.mp||'', true, sub));
   });
 }
 
 window.exportCSV = async function(){
   const snap = await getDocs(collection(db, COL));
-  const rows = [['분류','ERP명칭','1차 수정안','1차 편집자','1차 시각','최종 협의안','최종 편집자','최종 시각']];
+  const rows = [['분류','구분','소분류','ERP명칭','1차 수정안','1차 편집자','1차 시각','최종 협의안','최종 편집자','최종 시각']];
   snap.forEach(d=>{
     const x = d.data();
     if(!x.draft && !x.final) return;
     rows.push([
-      x.group||'', x.erp||'',
+      x.group||'',
+      x.custom ? '별도추가건' : '기존',
+      x.subgroup||'',
+      x.erp||'',
       x.draft||'', x.draft_by||'', x.draft_at?.toDate?.()?.toLocaleString()||'',
       x.final||'', x.final_by||'', x.final_at?.toDate?.()?.toLocaleString()||''
     ]);
