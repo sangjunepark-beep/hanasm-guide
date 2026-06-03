@@ -117,8 +117,8 @@
  tr.custom-row td input.dec{background:#fff5f5;border-color:#e0a0a0;}
  tr.custom-row td input.dec.final{background:#fdeaea;border-color:#d88080;}
  .cust-tag{display:inline-block;margin-left:5px;font-size:10.5px;background:#c0392b;color:#fff;border-radius:8px;padding:1px 7px;vertical-align:middle;font-weight:700;letter-spacing:.2px;}
- .del-row{margin-left:6px;background:none;border:0;color:#c44;cursor:pointer;font-size:11px;vertical-align:middle;}
- .del-row:hover{text-decoration:underline;}
+ .del-row{margin-left:8px;background:#fff;border:1px solid #c0392b;color:#c0392b;cursor:pointer;font-size:11px;vertical-align:middle;padding:2px 9px;border-radius:4px;font-weight:600;font-family:inherit;line-height:1.4;}
+ .del-row:hover{background:#c0392b;color:#fff;}
  .subgroup-add-btn{margin-left:10px;padding:2px 9px;background:rgba(255,255,255,.75);color:inherit;border:1px dashed currentColor;border-radius:4px;cursor:pointer;font-size:11px;font-family:inherit;font-weight:600;vertical-align:middle;opacity:.85;line-height:1.4;}
  .subgroup-add-btn:hover{opacity:1;background:#fff;}
  @media (max-width:980px){
@@ -733,7 +733,7 @@ function buildTermRow(group, erp, mp, custom, subgroup){
   tr.className = custom ? 'custom-row' : '';
   if(subgroup) tr.dataset.subgroup = subgroup;
   tr.innerHTML =
-    '<td>'+e(erp)+(custom?' <span class="cust-tag">신규 항목</span> <button type="button" class="del-row" title="이 행 삭제">✕</button>':'')+'</td>'+
+    '<td>'+e(erp)+(custom?' <span class="cust-tag">신규 항목</span> <button type="button" class="del-row" title="이 신규 항목 삭제">🗑 삭제</button>':'')+'</td>'+
     '<td>'+e(mp||'')+'</td>'+
     '<td class="cell"><input class="dec" data-key="'+e(key)+'" data-field="draft" data-group="'+e(group)+'" data-erp="'+e(erp)+'" data-mp="'+e(mp||'')+'" placeholder="1차 수정안"><div class="meta" data-meta-key="'+e(key)+'" data-meta-field="draft"></div></td>'+
     '<td class="cell"><input class="dec final" data-key="'+e(key)+'" data-field="final" data-group="'+e(group)+'" data-erp="'+e(erp)+'" data-mp="'+e(mp||'')+'" placeholder="최종 협의안"><div class="meta" data-meta-key="'+e(key)+'" data-meta-field="final"></div></td>';
@@ -766,13 +766,15 @@ async function promptAddTerm(group, subgroup){
 
 async function deleteTerm(group, erp, tr){
   if(!getEditor()){ openEditorModal(); return; }
-  if(!confirm('"'+erp+'" 항목을 삭제할까요? (모두에게 반영, 입력값도 삭제)')) return;
+  const sub = tr && tr.dataset ? tr.dataset.subgroup||'' : '';
+  const msg = '신규 항목 "'+erp+'"'+(sub?' ('+sub+')':'')+' 을(를) 삭제할까요?\n\n· 모두에게 즉시 반영됩니다\n· 입력해둔 1차/최종 협의안 값도 함께 삭제됩니다\n· 삭제 이력은 로그(erp_term_logs)에 남습니다';
+  if(!confirm(msg)) return;
   const key = group+'::'+erp;
   try{
     await deleteDoc(doc(db, COL, key));
-    await addDoc(collection(db,'erp_term_logs'), { key, group, erp, field:'(행삭제)', before:erp, after:'', action:'del-term', editor:getEditor(), ts: serverTimestamp() });
+    await addDoc(collection(db,'erp_term_logs'), { key, group, erp, subgroup:sub, field:'(행삭제)', before:erp, after:'', action:'del-term', editor:getEditor(), ts: serverTimestamp() });
     if(tr && tr.parentNode) tr.parentNode.removeChild(tr);
-    tick('🗑️ 항목 삭제: '+erp);
+    tick('🗑️ 신규 항목 삭제: '+erp);
   }catch(e){ tick('⚠️ 삭제실패: '+e.code); console.error(e); }
 }
 
