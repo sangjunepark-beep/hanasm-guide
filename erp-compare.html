@@ -575,7 +575,7 @@ let _inited=false;
 function init(){
   if(_inited) return;   // 중복 실행 방지 (DOMContentLoaded + readyState 이중 호출 → 비고 2번 저장 버그)
   _inited=true;
-  try{ layoutSections(); addRowBtns(); rewriteStageKeysBySubgroup(); injectDragHandles(); injectRowActions(); injectCopyButtons(); }catch(e){ console.error('layout v2', e); }
+  try{ layoutSections(); addRowBtns(); rewriteStageKeysBySubgroup(); injectDragHandles(); injectRowActions(); injectCopyButtons(); injectMissingMappingButtons(); }catch(e){ console.error('layout v2', e); }
   try{ migrateLegacyStageKeys(); }catch(e){ console.error('migrate stage keys', e); }
   // 모달 버튼 핸들러
   document.querySelectorAll('#editorModal .btns button').forEach(b=>{
@@ -897,6 +897,78 @@ function rewriteStageKeysBySubgroup(){
       }
     }
   });
+}
+
+// [2026-06-05] 표 4 (가이드엔 있는데 ERP에 없는 자재) 각 행에 "→ 재질 표에 등재" 버튼 추가
+function injectMissingMappingButtons(){
+  const table = document.querySelector('table[data-group="missing"]');
+  if(!table) return;
+  table.querySelectorAll('tr').forEach(tr=>{
+    const cells = tr.querySelectorAll('td');
+    if(cells.length < 4) return; // 헤더(th) 행 제외
+    if(tr.querySelector('.mapping-btn')) return;
+    const guideName = (cells[1].textContent||'').trim();
+    if(!guideName) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'mapping-btn';
+    btn.textContent = '→ 재질 표에 등재';
+    btn.title = '이 항목을 재질(Material) 표의 선택한 분류에 신규 항목으로 추가';
+    btn.style.cssText = 'margin-left:8px;padding:3px 10px;background:#2c5b9c;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11.5px;font-family:inherit;white-space:nowrap;font-weight:600;';
+    btn.addEventListener('mouseover', ()=>{ btn.style.background = '#1f3a5f'; });
+    btn.addEventListener('mouseout', ()=>{ btn.style.background = '#2c5b9c'; });
+    btn.addEventListener('click', ()=>mapMissingToMaterial(guideName, tr));
+    cells[cells.length-1].appendChild(document.createTextNode(' '));
+    cells[cells.length-1].appendChild(btn);
+  });
+}
+
+async function mapMissingToMaterial(guideName, sourceTr){
+  if(!getEditor()){ openEditorModal(); return; }
+  const matTable = document.querySelector('table[data-group="material"]');
+  if(!matTable){ alert('재질 표를 찾지 못했습니다.'); return; }
+  const subs = Array.from(matTable.querySelectorAll('tr.flowsep'))
+    .map(s => s.dataset.subgroup || normSubgroup(s.querySelector('td')?.textContent || ''))
+    .filter(Boolean);
+  if(!subs.length){ alert('재질 표 분류(소구분)가 없습니다.'); return; }
+  const list = subs.map((s, i)=>(i+1)+'. '+s).join('\n');
+  const choice = prompt('"'+guideName+'" 항목을 재질 표의 어느 분류에 추가할까요?\n\n'+list+'\n\n번호를 입력 (예: 1):', '');
+  if(choice===null) return;
+  let targetSub = '';
+  const num = parseInt(String(choice).trim(), 10);
+  if(!isNaN(num) && num >= 1 && num <= subs.length){ targetSub = subs[num-1]; }
+  else { targetSub = subs.find(s => s === String(choice).trim()) || ''; }
+  if(!targetSub){ alert('유효한 분류 번호가 아닙니다.'); return; }
+  const key = termKey('material', '', guideName); // material 그룹은 subgroup 키 포함 X
+  if(document.querySelector(keySel(key))){
+    if(!confirm('"'+guideName+'" 항목이 이미 재질 표에 있습니다.\n\n그래도 같은 분류에 추가할까요?')) return;
+  }
+  const newRow = buildTermRow('material', guideName, '(가이드 보완 후보 #4)', true, targetSub);
+  insertCustomRow(matTable, targetSub, newRow);
+  try{
+    await setDoc(doc(db, COL, key), {
+      group:'material', erp:guideName, mp:'(가이드 보완 후보 #4)',
+      subgroup:targetSub, custom:true, mapped_from_missing:true,
+      updatedAt: serverTimestamp(), updatedBy: getEditor()
+    }, {merge:true});
+    await addDoc(collection(db,'erp_term_logs'), {
+      key, group:'material', erp:guideName, subgroup:targetSub,
+      field:'(매핑추가)', before:'', after:guideName,
+      action:'map-from-missing', editor:getEditor(), ts: serverTimestamp()
+    });
+    // 표 4 행에 등재 표시
+    if(sourceTr){
+      sourceTr.style.background = '#f4faf4';
+      const btn = sourceTr.querySelector('.mapping-btn');
+      if(btn){
+        const tag = document.createElement('span');
+        tag.style.cssText = 'display:inline-block;margin-left:8px;padding:3px 10px;background:#3a7a3a;color:#fff;border-radius:10px;font-size:11.5px;font-weight:600;';
+        tag.textContent = '✓ 등재됨 ('+targetSub+')';
+        btn.replaceWith(tag);
+      }
+    }
+    tick('→ 등재: '+guideName+' → 재질·'+targetSub);
+  }catch(e){ tick('⚠️ 등재실패: '+(e.code||e.message)); console.error(e); }
 }
 
 // [2026-06-05] 옛 stage::erp doc 자동 마이그 — 첫 등장 subgroup 의 새 doc(stage::sub::erp)으로 값 복사. 한 번만 실행.
@@ -2138,13 +2210,16 @@ function validateTermName(s){
 }
 
 function renderOrphanRows(m){
+  // [2026-06-05] 옛 stage::erp 키가 새 stage::sub::erp 로 이미 마이그됐는지 확인 (중복 표시 방지)
+  const migratedOldKeys = new Set();
+  Object.values(m).forEach(d=>{ if(d && d.migrated_from) migratedOldKeys.add(d.migrated_from); });
   Object.keys(m).forEach(key=>{
     if(_pendingDeletes.has(key)) return;
     const d = m[key];
     if(!d || !d.group || !GROUP_LABEL[d.group]) return;
     if(document.querySelector(keySel(key))) return;
-    // [2026-06-05] 옛 stage::erp doc 은 마이그 대상 — copy-row 시스템이 여전히 참조하므로 보존하되 orphan 행으로는 그리지 않음
-    if(d.group === 'stage' && String(key).split('::').length === 2) return;
+    // 옛 stage 키 doc 중 이미 새 doc 으로 마이그된 것만 스킵. 마이그 안 된 옛 데이터는 orphan 으로 살려 보여줌 (데이터 손실 방지)
+    if(d.group === 'stage' && String(key).split('::').length === 2 && migratedOldKeys.has(key)) return;
     const table = document.querySelector('table[data-group="'+d.group+'"]');
     if(!table) return;
     const sub = d.subgroup||'';
