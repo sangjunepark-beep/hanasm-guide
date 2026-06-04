@@ -168,7 +168,7 @@
  .rationale-preview{font-size:10.5px;color:#a07020;margin-left:3px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;}
  tr.confirmed td.cell{background:#f0fbf0 !important;}
  tr.confirmed .ap-chk{border-color:#2e6a2e;}
- tr.confirmed::before{content:'';}
+ /* tr.confirmed::before 제거 — table 환경에서 첫 셀 폭을 늘리는 사이드이펙트 [2026-06-04] */
  tr.deployed td{background:#e8f5e8 !important;}
  .undo-btn{padding:7px 14px;background:#e8a13a;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:600;}
  .undo-btn:hover{background:#c98520;}
