@@ -124,6 +124,14 @@
  .del-row:hover{background:#c0392b;color:#fff;}
  .edit-row{margin-left:6px;background:#fff;border:1px solid #2c5b9c;color:#2c5b9c;cursor:pointer;font-size:11px;vertical-align:middle;padding:2px 9px;border-radius:4px;font-weight:600;font-family:inherit;line-height:1.4;}
  .edit-row:hover{background:#2c5b9c;color:#fff;}
+ /* 공정 복사 — stage 그룹 행만 */
+ .copy-row{margin-left:6px;background:#fff;border:1px solid #888;color:#666;cursor:pointer;font-size:11px;vertical-align:middle;padding:2px 9px;border-radius:4px;font-weight:600;font-family:inherit;line-height:1.4;}
+ .copy-row:hover{background:#666;color:#fff;}
+ tr.copied-row td{background:#f7f5f0;}
+ tr.copied-row td:first-child{font-style:italic;}
+ .copy-tag{display:inline-block;margin-left:5px;font-size:10.5px;background:#888;color:#fff;border-radius:8px;padding:1px 7px;vertical-align:middle;font-weight:700;letter-spacing:.2px;}
+ .uncopy-row{margin-left:6px;background:#fff;border:1px solid #888;color:#666;cursor:pointer;font-size:11px;vertical-align:middle;padding:2px 9px;border-radius:4px;font-weight:600;font-family:inherit;line-height:1.4;}
+ .uncopy-row:hover{background:#888;color:#fff;}
  .drag-handle{display:inline-block;color:#b8b8b8;cursor:grab;user-select:none;font-size:14px;padding:0 6px 0 0;vertical-align:middle;font-weight:700;letter-spacing:-2px;}
  .drag-handle:hover{color:#2c5b9c;}
  .drag-handle:active{cursor:grabbing;color:#1f3a5f;}
@@ -417,15 +425,15 @@
 
 <h2>5. 주요 불일치 (용어 통일 필요) <span style="font-size:13px;color:#888;font-weight:400;">· 2026-06-03 검증 항목 추가</span></h2>
 <table><tr><th style="width:8%">분류</th><th style="width:20%">ERP 표기</th><th style="width:22%">가이드 표기</th><th style="width:50%">제안</th></tr>
-<tr><td>장비</td><td>준드</td><td>ZUND(평판컷팅기)</td><td>표준명 "ZUND" 채택. <b>ERP 코드값(준드)은 rename 금지</b> — 표시 별칭으로 ZUND 등록(주문·이력 보존). 공정 "준드재단"도 함께 매핑.</td></tr>
-<tr><td>장비</td><td>UV출력기</td><td>UV 평판</td><td>"UV 평판"으로 통일(인쇄 방식 명시)</td></tr>
-<tr><td>공정</td><td>UV인쇄 / 솔벤인쇄 / 수성출력 / 라텍스출력</td><td>UV평판 / 솔벤트 / 수성 / 라텍스</td><td>⚠️ "인쇄로 통일"은 과단순화 — 장비명(UV출력기·수성출력)과 공정명(UV인쇄·수성출력)은 레이어가 다름. <b>공정명 동사만 "인쇄"로 통일하고 장비명은 보존</b>(레이어 분리).</td></tr>
-<tr><td>자재</td><td>포맥스1T·2T·3T·5T (4종 분리)</td><td>포맥스 (두께 옵션)</td><td>마스터는 "포맥스"로 두고 두께를 별도 필드로 분리 권장</td></tr>
-<tr class="warn"><td>자재</td><td>포마트10T</td><td>(미정의)</td><td>⚠️ <b>확인필요 · 오타 단정 금지</b> — ERP에 "포맥스10T"는 없고 "포마트10T"만 실재. 포맥스 오타인지 별재질(두꺼운 보드류)인지 미확정 → 생산팀 확인 후 결정.</td></tr>
-<tr><td>자재</td><td>라텍스켈</td><td>캘그레이/캘 시트(랩핑)</td><td>"라텍스"는 인쇄장비명, "캘"은 시트류 — 명칭 충돌 정리</td></tr>
-<tr class="warn"><td>장비·공정</td><td>라텍스출력·수성출력·슈마재단·본사·2공장</td><td>(장비/공정 중복)</td><td>⚠️ 2026-06-03 검증 추가 — 장비명과 공정명이 <b>동일 문자열 5건</b>. 참조 모호 → 레이어(장비/공정) 구분 표기 필요. ERP 값은 보존.</td></tr>
-<tr class="warn"><td>분류</td><td>본사 · 2공장</td><td>(공장/사업장)</td><td>⚠️ 검증 추가 — 설비도 공정도 아닌 <b>사업장(Site)</b>. 장비·공정 마스터에서 분리 권장.</td></tr>
-<tr class="warn"><td>장비↔공정</td><td>DTF출력기 ↔ DTF스티커</td><td>(페어링 패턴 불일치)</td><td>⚠️ 검증 추가 — 타 장비는 'X+인쇄/재단'인데 DTF만 결과물명(스티커). <b>DTF인쇄</b>로 정규화 + 장비↔공정 페어링표 작성.</td></tr>
+<tr><td>장비</td><td>준드</td><td>ZUND(평판컷팅기)</td><td>화면에 보이는 이름은 <b>"ZUND"</b>로 통일. 단, <b>ERP 안에 등록된 코드값 "준드"는 절대 바꾸지 않습니다</b> — 옛 주문·이력의 매칭이 깨지기 때문. 같은 방식으로 공정 "준드재단"도 정리.</td></tr>
+<tr><td>장비</td><td>UV출력기</td><td>UV 평판</td><td>장비 이름을 <b>"UV 평판"</b>으로 통일. (그냥 "UV"가 아니라 인쇄 방식까지 분명히 표시)</td></tr>
+<tr><td>공정</td><td>UV인쇄 / 솔벤인쇄 / 수성출력 / 라텍스출력</td><td>UV평판 / 솔벤트 / 수성 / 라텍스</td><td>⚠️ 무조건 <b>"○○인쇄"</b>로 통일하기엔 문제 있음. <b>장비명</b>(UV출력기·수성출력)과 <b>공정명</b>(UV인쇄·수성출력)은 서로 다른 개념입니다. <b>공정명만 끝글자를 "인쇄"로 통일</b>(예: UV인쇄·솔벤인쇄·수성인쇄·라텍스인쇄)하고 <b>장비명은 그대로</b> 두는 게 정리됩니다.</td></tr>
+<tr><td>자재</td><td>포맥스1T·2T·3T·5T (4종 분리)</td><td>포맥스 (두께 옵션)</td><td>ERP의 자재 마스터에는 <b>"포맥스" 하나만</b> 등록하고, <b>두께(1T/2T/3T/5T)는 별도 옵션</b>으로 따로 관리하는 걸 권장합니다.</td></tr>
+<tr class="warn"><td>자재</td><td>포마트10T</td><td>(미정의)</td><td>⚠️ <b>송팀장(생산) 확인 필요</b>. ERP를 보면 "포맥스10T"는 없고 <b>"포마트10T"만 실제 등록</b>되어 있습니다. <br><b>① 포맥스 오타인지</b>, <b>② 아예 다른 재질(두꺼운 보드류)인지</b> 아직 모름. 함부로 "오타니까 합치자"라고 단정하지 말고 생산팀에 물어보고 결정.</td></tr>
+<tr><td>자재</td><td>라텍스켈</td><td>캘그레이/캘 시트(랩핑)</td><td><b>"라텍스"는 인쇄 장비 이름</b>, <b>"캘"은 시트류 이름</b>. 같은 이름이 다른 걸 가리켜서 헷갈립니다. 이름을 분리해서 정리 필요.</td></tr>
+<tr class="warn"><td>장비·공정</td><td>라텍스출력·수성출력·슈마재단·본사·2공장</td><td>(장비/공정 중복)</td><td>⚠️ <b>같은 이름이 장비에도, 공정에도 등록된 것이 5건</b>(라텍스출력·수성출력·슈마재단·본사·2공장). 어느 걸 가리키는지 헷갈리니, <b>"장비:라텍스출력"</b>·<b>"공정:라텍스출력"</b>처럼 구분 표기를 권장. <b>단, ERP의 원래 값은 그대로 둠</b> (옛 데이터 보존).</td></tr>
+<tr class="warn"><td>분류</td><td>본사 · 2공장</td><td>(공장/사업장)</td><td>⚠️ <b>"본사"·"2공장"은 장비도 아니고 공정도 아닙니다</b>. 그냥 일하는 장소(사업장)예요. 장비·공정 마스터에서 빼고 <b>별도 사업장 항목</b>으로 옮기길 권장.</td></tr>
+<tr class="warn"><td>장비↔공정</td><td>DTF출력기 ↔ DTF스티커</td><td>(페어링 패턴 불일치)</td><td>⚠️ <b>다른 장비는 "○○인쇄/재단"</b> 패턴인데(UV인쇄, 솔벤인쇄, 슈마재단), <b>DTF만 결과물 이름("스티커")</b>으로 적혀있어 패턴이 깨집니다. <b>"DTF인쇄"로 통일</b>하고, 어느 장비가 어느 공정과 짝인지 표로 정리 필요.</td></tr>
 </table>
 <div class="notes" data-section="conflict">
  <h3>📝 5. 주요 불일치 — 비고 / 협의 기록 <span class="badge n">0</span></h3>
@@ -544,7 +552,7 @@ let _inited=false;
 function init(){
   if(_inited) return;   // 중복 실행 방지 (DOMContentLoaded + readyState 이중 호출 → 비고 2번 저장 버그)
   _inited=true;
-  try{ layoutSections(); addRowBtns(); injectDragHandles(); injectRowActions(); }catch(e){ console.error('layout v2', e); }
+  try{ layoutSections(); addRowBtns(); injectDragHandles(); injectRowActions(); injectCopyButtons(); }catch(e){ console.error('layout v2', e); }
   // 모달 버튼 핸들러
   document.querySelectorAll('#editorModal .btns button').forEach(b=>{
     b.addEventListener('click', ()=>{
@@ -584,6 +592,8 @@ function init(){
       lastSnap[d.id] = { draft: d.data().draft||'', final: d.data().final||'' };
     });
     try{ renderOrphanRows(m); }catch(e){ console.error('orphan v2', e); }
+    // 공정 복사 행 동기화 (copies 배열 → DOM)
+    try{ Object.keys(m).forEach(k=>renderCopies(k, m[k])); }catch(e){ console.error('copies v6', e); }
     // 신규 행 렌더 후 저장된 순서 재적용 (소구분 순서 → 행 순서 차례로)
     try{ Object.keys(_subOrderCache).forEach(g=>applySubgroupOrder(g, _subOrderCache[g])); }catch(e){ console.error('reorder-sub v2', e); }
     try{ Object.values(_orderCache).forEach(x=>applyOrder(x.group, x.subgroup||'', x.order)); }catch(e){ console.error('reorder v2', e); }
@@ -829,9 +839,11 @@ function buildTermRow(group, erp, mp, custom, subgroup){
   if(subgroup) tr.dataset.subgroup = subgroup;
   const handle = '<span class="drag-handle" title="드래그해서 순서 변경">⋮⋮</span>';
   const customBtns = custom ? ' <span class="cust-tag">신규 항목</span> <button type="button" class="edit-row" title="이 신규 항목 수정">✏ 수정</button> <button type="button" class="del-row" title="이 신규 항목 삭제">🗑 삭제</button>' : '';
+  // stage(공정) 그룹에만 복사 버튼 — 후가공·포장 같이 여러 공정 흐름에서 같이 쓰는 행을 다른 소구분에 복사 (데이터는 자동 연동)
+  const copyBtn = (group === 'stage') ? ' <button type="button" class="copy-row" title="이 행을 다른 공정 흐름에 복사 — 값은 서로 자동 연동">↗ 복사</button>' : '';
   tr.dataset.rowKey = key;
   tr.innerHTML =
-    '<td>'+handle+' '+e(erp)+customBtns+'</td>'+
+    '<td>'+handle+' '+e(erp)+customBtns+copyBtn+'</td>'+
     '<td>'+e(mp||'')+'</td>'+
     '<td class="cell"><input class="dec" data-key="'+e(key)+'" data-field="draft" data-group="'+e(group)+'" data-erp="'+e(erp)+'" data-mp="'+e(mp||'')+'" placeholder="1차 수정안"><div class="meta" data-meta-key="'+e(key)+'" data-meta-field="draft"></div></td>'+
     '<td class="cell"><input class="dec final" data-key="'+e(key)+'" data-field="final" data-group="'+e(group)+'" data-erp="'+e(erp)+'" data-mp="'+e(mp||'')+'" placeholder="최종 협의안"><div class="meta" data-meta-key="'+e(key)+'" data-meta-field="final"></div></td>';
@@ -840,6 +852,8 @@ function buildTermRow(group, erp, mp, custom, subgroup){
   if(del) del.addEventListener('click', ()=>deleteTerm(group, erp, tr));
   const edit = tr.querySelector('.edit-row');
   if(edit) edit.addEventListener('click', ()=>editTerm(group, erp, tr));
+  const cp = tr.querySelector('.copy-row');
+  if(cp) cp.addEventListener('click', ()=>copyTermToSubgroup(group, erp, tr));
   makeRowDraggable(tr);
   return tr;
 }
@@ -1399,6 +1413,148 @@ function fmtIso(iso){
   if(!iso) return '';
   try{ const d = new Date(iso); return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
   catch(_){ return ''; }
+}
+
+/* ===== v6 (2026-06-04): 공정(stage) 그룹 — 행 복사 (다른 소구분에 같은 행을 두되 데이터 자동 연동) ===== */
+function buildCopiedRow(group, erp, mp, subgroup){
+  const key = group+'::'+erp, e = escapeHtml;
+  const tr = document.createElement('tr');
+  tr.className = 'copied-row';
+  tr.dataset.subgroup = subgroup;
+  tr.dataset.rowKey = key;
+  tr.dataset.isCopy = '1';
+  const handle = '<span class="drag-handle" title="드래그해서 순서 변경">⋮⋮</span>';
+  const tags = ' <span class="copy-tag">↗ 복사본</span> <button type="button" class="uncopy-row" title="이 위치에서 복사본만 제거 (원본·다른 위치는 유지)">✕ 복사 제거</button>';
+  tr.innerHTML =
+    '<td>'+handle+' '+e(erp)+tags+'</td>'+
+    '<td>'+e(mp||'')+'</td>'+
+    '<td class="cell"><input class="dec" data-key="'+e(key)+'" data-field="draft" data-group="'+e(group)+'" data-erp="'+e(erp)+'" data-mp="'+e(mp||'')+'" placeholder="1차 수정안"><div class="meta" data-meta-key="'+e(key)+'" data-meta-field="draft"></div></td>'+
+    '<td class="cell"><input class="dec final" data-key="'+e(key)+'" data-field="final" data-group="'+e(group)+'" data-erp="'+e(erp)+'" data-mp="'+e(mp||'')+'" placeholder="최종 협의안"><div class="meta" data-meta-key="'+e(key)+'" data-meta-field="final"></div></td>';
+  tr.querySelectorAll('input.dec').forEach(wireInput);
+  const uncopy = tr.querySelector('.uncopy-row');
+  if(uncopy) uncopy.addEventListener('click', ()=>removeCopy(group, erp, subgroup, tr));
+  makeRowDraggable(tr);
+  return tr;
+}
+
+function insertIntoSubgroup(table, targetSub, tr){
+  const seps = Array.from(table.querySelectorAll('tr.flowsep'));
+  const sep = seps.find(s => s.dataset.subgroup === targetSub);
+  if(!sep){ (table.tBodies[0]||table).appendChild(tr); return; }
+  let next = sep.nextElementSibling;
+  while(next && !next.classList.contains('flowsep')) next = next.nextElementSibling;
+  if(next) next.parentNode.insertBefore(tr, next);
+  else (table.tBodies[0]||table).appendChild(tr);
+}
+
+async function copyTermToSubgroup(group, erp, sourceTr){
+  if(group !== 'stage'){ alert('복사 기능은 공정 표에서만 사용됩니다.'); return; }
+  if(!getEditor()){ openEditorModal(); return; }
+  const table = document.querySelector('table[data-group="stage"]');
+  if(!table) return;
+  const seps = Array.from(table.querySelectorAll('tr.flowsep'));
+  const allSubs = seps.map(s => s.dataset.subgroup).filter(Boolean);
+  const sourceSub = sourceTr ? (sourceTr.dataset.subgroup||'') : '';
+  const targets = allSubs.filter(s => s !== sourceSub);
+  if(!targets.length){ alert('복사할 다른 소구분이 없습니다.'); return; }
+  const list = targets.map((s,i)=>(i+1)+'. '+s).join('\n');
+  const choice = prompt('"'+erp+'" 행을 어느 공정 흐름으로 복사할까요?\n\n'+list+'\n\n번호 또는 정확한 이름을 입력 (예: 1):', '');
+  if(choice===null) return;
+  let targetSub = '';
+  const num = parseInt(String(choice).trim(), 10);
+  if(!isNaN(num) && num >= 1 && num <= targets.length){ targetSub = targets[num-1]; }
+  else { targetSub = targets.find(s => s === String(choice).trim()) || ''; }
+  if(!targetSub){ alert('유효한 소구분이 아닙니다.'); return; }
+  // 이미 그 소구분에 같은 키 행 있는지 확인
+  const dupes = Array.from(document.querySelectorAll('tr[data-row-key]')).filter(t => t.dataset.rowKey === group+'::'+erp && !t.classList.contains('actions-row') && t.dataset.subgroup === targetSub);
+  if(dupes.length){ alert('"'+targetSub+'"에 이미 "'+erp+'" 행이 있습니다.'); return; }
+  const key = group+'::'+erp;
+  const ref = doc(db, COL, key);
+  const snap = await getDoc(ref);
+  const data = snap.exists() ? snap.data() : {};
+  const copies = Array.isArray(data.copies) ? data.copies.slice() : [];
+  if(copies.indexOf(targetSub) >= 0){ alert('이미 복사된 위치입니다.'); return; }
+  copies.push(targetSub);
+  try{
+    await setDoc(ref, { group, erp, copies, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+    await addDoc(collection(db,'erp_term_logs'), { key, group, erp, subgroup:targetSub, field:'(복사)', before:'', after:targetSub, action:'copy-term', editor:getEditor(), ts: serverTimestamp() });
+    tick('↗ 복사: '+erp+' → '+targetSub);
+  }catch(e){ tick('⚠️ 복사실패: '+(e.code||e.message)); console.error(e); }
+}
+
+async function removeCopy(group, erp, subgroup, tr){
+  if(!getEditor()){ openEditorModal(); return; }
+  if(!confirm('"'+erp+'" 복사본을 이 위치("'+subgroup+'")에서 제거할까요?\n\n· 원본 데이터와 1차/최종 협의안은 그대로 유지됩니다\n· 다른 위치의 복사본도 영향 없습니다')) return;
+  const key = group+'::'+erp;
+  const ref = doc(db, COL, key);
+  try{
+    const snap = await getDoc(ref);
+    const data = snap.exists() ? snap.data() : {};
+    const copies = (Array.isArray(data.copies) ? data.copies : []).filter(s => s !== subgroup);
+    await setDoc(ref, { copies, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+    await addDoc(collection(db,'erp_term_logs'), { key, group, erp, subgroup, field:'(복사 제거)', before:subgroup, after:'', action:'uncopy-term', editor:getEditor(), ts: serverTimestamp() });
+    if(tr){
+      const ar = tr.nextElementSibling;
+      if(ar && ar.classList && ar.classList.contains('actions-row')) ar.parentNode.removeChild(ar);
+      if(tr.parentNode) tr.parentNode.removeChild(tr);
+    }
+    tick('↗✕ 복사 제거: '+erp+' / '+subgroup);
+  }catch(e){ tick('⚠️ 복사 제거실패: '+(e.code||e.message)); console.error(e); }
+}
+
+// snapshot 에서 copies 배열 처리 — 누락된 위치에 복사 행 생성
+function renderCopies(key, data){
+  if(!data || !Array.isArray(data.copies)) return;
+  const group = data.group, erp = data.erp || String(key).split('::')[1] || '', mp = data.mp || '';
+  if(!group || !GROUP_LABEL[group]) return;
+  const table = document.querySelector('table[data-group="'+group+'"]');
+  if(!table) return;
+  data.copies.forEach(targetSub => {
+    if(!targetSub) return;
+    // 이미 같은 키 + 같은 소구분 행 있는지 확인
+    const exists = Array.from(document.querySelectorAll('tr[data-row-key]')).some(t =>
+      t.dataset.rowKey === key && !t.classList.contains('actions-row') && t.dataset.subgroup === targetSub
+    );
+    if(exists) return;
+    const tr = buildCopiedRow(group, erp, mp, targetSub);
+    insertIntoSubgroup(table, targetSub, tr);
+    appendActionsRow(tr, key, group, erp, false);
+  });
+  // 또한, copies 에 더 이상 없는데 DOM 에 남아있는 복사 행 정리
+  const validSubs = new Set(data.copies.filter(Boolean));
+  document.querySelectorAll('tr.copied-row[data-row-key="'+key.replace(/"/g,'\\"')+'"]').forEach(t=>{
+    if(!validSubs.has(t.dataset.subgroup)){
+      const ar = t.nextElementSibling;
+      if(ar && ar.classList && ar.classList.contains('actions-row')) ar.parentNode.removeChild(ar);
+      if(t.parentNode) t.parentNode.removeChild(t);
+    }
+  });
+}
+
+// 정적 HTML 행에 "↗ 복사" 버튼 주입 (stage 그룹만)
+function injectCopyButtons(){
+  const stageTable = document.querySelector('table[data-group="stage"]');
+  if(!stageTable) return;
+  stageTable.querySelectorAll('tr').forEach(tr=>{
+    if(tr.classList.contains('flowsep')) return;
+    if(tr.classList.contains('actions-row')) return;
+    if(tr.classList.contains('copied-row')) return;
+    if(!tr.querySelector('input.dec')) return;
+    const firstTd = tr.querySelector('td');
+    if(!firstTd) return;
+    if(firstTd.querySelector('.copy-row')) return;
+    const inp = tr.querySelector('input.dec.final');
+    if(!inp) return;
+    const erp = inp.dataset.erp;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-row';
+    btn.title = '이 행을 다른 공정 흐름에 복사 — 값은 자동 연동';
+    btn.textContent = '↗ 복사';
+    btn.addEventListener('click', ()=>copyTermToSubgroup('stage', erp, tr));
+    firstTd.appendChild(document.createTextNode(' '));
+    firstTd.appendChild(btn);
+  });
 }
 
 // 주입용 CSV (ERP·상품DB·챗봇 일괄 처리용)
