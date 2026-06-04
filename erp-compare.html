@@ -134,7 +134,8 @@
  .row-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center;font-size:11px;}
  .row-actions .group-label{color:#888;font-size:10px;margin-right:2px;}
  .approvals,.downstream{display:inline-flex;gap:3px;}
- .ap-chk,.ds-chk{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:20px;padding:0 5px;border:1px solid #c8d4e0;background:#fff;color:#888;border-radius:3px;cursor:pointer;font-size:10.5px;font-family:inherit;font-weight:600;line-height:1;user-select:none;}
+ .ap-chk{display:inline-flex;align-items:center;justify-content:center;min-width:48px;height:22px;padding:0 7px;border:1px solid #c8d4e0;background:#fff;color:#888;border-radius:3px;cursor:pointer;font-size:11px;font-family:inherit;font-weight:600;line-height:1;user-select:none;}
+ .ds-chk{display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:22px;padding:0 8px;border:1px solid #c8d4e0;background:#fff;color:#888;border-radius:3px;cursor:pointer;font-size:11px;font-family:inherit;font-weight:600;line-height:1;user-select:none;}
  .ap-chk:hover,.ds-chk:hover{background:#f0f4fb;border-color:#2c5b9c;color:#2c5b9c;}
  .ap-chk.on{background:#3a7a3a;border-color:#2e6a2e;color:#fff;}
  .ap-chk.on:hover{background:#2e6a2e;}
@@ -1085,17 +1086,17 @@ async function renameInOrder(group, subgroup, oldErp, newErp){
 
 /* ===== v5 (2026-06-04): P1 — 승인 체크 5칸 + 사유 + 다운스트림 4칸 + CSV 2종 ===== */
 const APPROVAL_ROLES = [
-  { key:'ceo',        short:'대표', label:'대표' },
-  { key:'production', short:'생산', label:'생산팀(송기용)' },
-  { key:'cs',         short:'CS',  label:'CS(천현정)' },
-  { key:'marketing',  short:'마케',label:'마케팅·웹(박상준)' },
-  { key:'design',     short:'디자',label:'디자인(강두원)' }
+  { key:'ceo',        short:'대표',   label:'대표 승인' },
+  { key:'production', short:'송팀장', label:'송기용 팀장 (생산) 승인' },
+  { key:'cs',         short:'천차장', label:'천현정 차장 (CS) 승인' },
+  { key:'marketing',  short:'박차장', label:'박상준 차장 (마케팅·웹) 승인' },
+  { key:'design',     short:'강팀장', label:'강두원 팀장 (디자인) 승인' }
 ];
 const DOWNSTREAM_TARGETS = [
-  { key:'erp',       short:'E',  label:'ERP 반영' },
-  { key:'productdb', short:'DB', label:'상품DB 반영' },
-  { key:'chatbot',   short:'봇', label:'챗봇 노드 반영' },
-  { key:'cs',        short:'CS', label:'CS 매뉴얼 반영' }
+  { key:'erp',       short:'ERP',    label:'ERP 반영 — 자재·공정·장비 드롭다운 명칭 변경 완료' },
+  { key:'productdb', short:'상품DB', label:'상품DB(앵커데이터) 반영 — 챗봇·검색·상세페이지 데이터 갱신 완료' },
+  { key:'chatbot',   short:'챗봇',   label:'챗봇 노드 반영 — 동의어 사전·응답 노드 업데이트 완료' },
+  { key:'cs',        short:'CS답변', label:'CS 응대 표준어 반영 — CS회의록·답변 매뉴얼에 통일 용어 반영 완료' }
 ];
 
 function buildRowActionsHtml(key){
