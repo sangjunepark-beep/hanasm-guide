@@ -2002,10 +2002,13 @@ let _lastSeenKeys = {};
 function validateTermName(s){
   if(typeof s !== 'string'){ alert('이름이 비어있습니다.'); return false; }
   if(s.length > 80){ alert('이름이 너무 깁니다 (최대 80자).'); return false; }
-  if(/[ -]/.test(s)){ alert('이름에 줄바꿈·탭·제어문자는 쓸 수 없습니다.'); return false; }
-  if(/[\/\\]/.test(s)){ alert('이름에 "/" "\\" 는 쓸 수 없습니다.'); return false; }
-  if(/^\s*$/.test(s)){ alert('빈 이름은 사용할 수 없습니다.'); return false; }
-  if(/^__/.test(s)){ alert('이름은 "__" 로 시작할 수 없습니다 (시스템 예약).'); return false; }
+  if(!s.trim()){ alert('빈 이름은 사용할 수 없습니다.'); return false; }
+  for(var i=0;i<s.length;i++){
+    var c = s.charCodeAt(i);
+    if(c < 32 || c === 127){ alert('이름에 줄바꿈·탭·제어문자는 쓸 수 없습니다.'); return false; }
+  }
+  if(s.indexOf('/') >= 0 || s.indexOf('') >= 0){ alert('이름에 "/" "\" 는 쓸 수 없습니다.'); return false; }
+  if(s.length >= 2 && s.charAt(0) === '_' && s.charAt(1) === '_'){ alert('이름은 "__" 로 시작할 수 없습니다 (시스템 예약).'); return false; }
   if(s === '.' || s === '..'){ alert('"." 또는 ".." 는 쓸 수 없습니다.'); return false; }
   return true;
 }
