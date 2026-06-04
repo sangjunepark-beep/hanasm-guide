@@ -139,11 +139,6 @@
  .ap-chk:hover,.ds-chk:hover{background:#f0f4fb;border-color:#2c5b9c;color:#2c5b9c;}
  .ap-chk.on{background:#3a7a3a;border-color:#2e6a2e;color:#fff;}
  .ap-chk.on:hover{background:#2e6a2e;}
- /* 본인 칸 강조 / 남의 칸 흐릿 */
- .ap-chk.own{border-width:2px;border-color:#2c5b9c;box-shadow:0 0 0 1px rgba(44,91,156,.15);}
- .ap-chk.own::after{content:' 👤';font-size:9px;}
- .ap-chk:not(.own):not(.on){opacity:.55;}
- .ap-chk:not(.own):not(.on):hover{opacity:.85;cursor:not-allowed;background:#fff5f5;border-color:#c44;color:#c44;}
  .ds-chk.on{background:#2c5b9c;border-color:#1f3a5f;color:#fff;}
  .ds-chk.on:hover{background:#1f3a5f;}
  .ap-chk[disabled],.ds-chk[disabled]{opacity:.45;cursor:not-allowed;}
@@ -541,7 +536,6 @@ function init(){
       const ed = document.getElementById('editor');
       ed.value = name;
       tick('편집자 설정: '+name);
-      refreshOwnApprovals();
       closeEditorModal();
     });
   });
@@ -549,11 +543,7 @@ function init(){
   // 이름 드롭다운 복원
   const ed = document.getElementById('editor');
   ed.value = getEditor();
-  ed.addEventListener('change', ()=>{
-    setEditor(ed.value);
-    tick('편집자 설정: '+(ed.value||'미지정'));
-    refreshOwnApprovals();
-  });
+  ed.addEventListener('change', ()=>{ setEditor(ed.value); tick('편집자 설정: '+(ed.value||'미지정')); });
 
   // 입력 시도 가로채기 — input.dec, textarea가 포커스되는 순간 미선택이면 모달
   document.querySelectorAll('input.dec, .notes textarea').forEach(el=>{
@@ -1096,19 +1086,12 @@ async function renameInOrder(group, subgroup, oldErp, newErp){
 
 /* ===== v5 (2026-06-04): P1 — 승인 체크 5칸 + 사유 + 다운스트림 4칸 + CSV 2종 ===== */
 const APPROVAL_ROLES = [
-  { key:'ceo',        short:'대표',   editor:'대표님',      label:'대표 승인 — 대표님 본인만 체크 가능' },
-  { key:'production', short:'송팀장', editor:'송기용 팀장', label:'생산 승인 — 송기용 팀장 본인만 체크 가능' },
-  { key:'cs',         short:'천차장', editor:'천현정 차장', label:'CS 승인 — 천현정 차장 본인만 체크 가능' },
-  { key:'marketing',  short:'박차장', editor:'박상준 차장', label:'마케팅·웹 승인 — 박상준 차장 본인만 체크 가능' },
-  { key:'design',     short:'강팀장', editor:'강두원 팀장', label:'디자인 승인 — 강두원 팀장 본인만 체크 가능' }
+  { key:'ceo',        short:'대표',   label:'대표 승인' },
+  { key:'production', short:'송팀장', label:'송기용 팀장 (생산) 승인' },
+  { key:'cs',         short:'천차장', label:'천현정 차장 (CS) 승인' },
+  { key:'marketing',  short:'박차장', label:'박상준 차장 (마케팅·웹) 승인' },
+  { key:'design',     short:'강팀장', label:'강두원 팀장 (디자인) 승인' }
 ];
-function roleForEditor(editor){ return APPROVAL_ROLES.find(r => r.editor === editor) || null; }
-function refreshOwnApprovals(){
-  const myRole = roleForEditor(getEditor());
-  document.querySelectorAll('.ap-chk').forEach(btn=>{
-    btn.classList.toggle('own', !!(myRole && myRole.key === btn.dataset.role));
-  });
-}
 const DOWNSTREAM_TARGETS = [
   { key:'erp',       short:'ERP',    label:'ERP 반영 — 자재·공정·장비 드롭다운 명칭 변경 완료' },
   { key:'productdb', short:'상품DB', label:'상품DB(앵커데이터) 반영 — 챗봇·검색·상세페이지 데이터 갱신 완료' },
@@ -1178,15 +1161,6 @@ function toggleRationaleBox(key, tr){
 async function toggleApproval(key, group, erp, role){
   if(!getEditor()){ openEditorModal(); return; }
   const editor = getEditor();
-  // 본인 칸만 체크 가능
-  const target = APPROVAL_ROLES.find(r => r.key === role);
-  if(!target) return;
-  if(target.editor !== editor){
-    const myRole = roleForEditor(editor);
-    const myInfo = myRole ? '본인 칸: ['+myRole.short+'] '+myRole.editor : '본인 칸 없음 (편집자 미매칭)';
-    alert('이 승인 칸은 '+target.editor+'만 체크 가능합니다.\n\n현재 편집자: '+editor+'\n해당 칸 담당자: '+target.editor+'\n→ '+myInfo+'\n\n상단 편집자를 '+target.editor+'(으)로 변경한 뒤 다시 시도해 주세요.');
-    return;
-  }
   const ref = doc(db, COL, key);
   const snap = await getDoc(ref);
   const data = snap.exists() ? snap.data() : {};
@@ -1269,19 +1243,15 @@ async function saveRationale(key, group, erp, text){
 function applyMetaActionsForDoc(key, data){
   // 승인
   const apCnt = APPROVAL_ROLES.filter(r => data.approvals && data.approvals[r.key] && data.approvals[r.key].by).length;
-  const myRole = roleForEditor(getEditor());
   document.querySelectorAll('.ap-chk[data-key="'+cssEscape(key)+'"]').forEach(btn=>{
     const role = btn.dataset.role;
-    const r = APPROVAL_ROLES.find(x=>x.key===role);
     const v = data.approvals && data.approvals[role];
-    // 본인 칸 표시
-    btn.classList.toggle('own', !!(myRole && myRole.key === role));
     if(v && v.by){
       btn.classList.add('on');
-      btn.title = r.label+'\n→ 승인: '+v.by+' / '+fmtIso(v.at)+(myRole && myRole.key===role ? ' (클릭=해제)' : ' (본인 칸 아님)');
+      btn.title = APPROVAL_ROLES.find(r=>r.key===role).label+' 승인 — '+v.by+' / '+fmtIso(v.at)+' (클릭=해제)';
     } else {
       btn.classList.remove('on');
-      btn.title = r.label + (myRole && myRole.key===role ? ' (클릭=승인)' : ' — 다른 담당자 칸');
+      btn.title = APPROVAL_ROLES.find(r=>r.key===role).label+' 승인 (클릭=승인)';
     }
   });
   const confirmed = apCnt === APPROVAL_ROLES.length;
