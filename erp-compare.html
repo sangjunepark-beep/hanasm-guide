@@ -119,6 +119,14 @@
  .cust-tag{display:inline-block;margin-left:5px;font-size:10.5px;background:#c0392b;color:#fff;border-radius:8px;padding:1px 7px;vertical-align:middle;font-weight:700;letter-spacing:.2px;}
  .del-row{margin-left:8px;background:#fff;border:1px solid #c0392b;color:#c0392b;cursor:pointer;font-size:11px;vertical-align:middle;padding:2px 9px;border-radius:4px;font-weight:600;font-family:inherit;line-height:1.4;}
  .del-row:hover{background:#c0392b;color:#fff;}
+ .edit-row{margin-left:6px;background:#fff;border:1px solid #2c5b9c;color:#2c5b9c;cursor:pointer;font-size:11px;vertical-align:middle;padding:2px 9px;border-radius:4px;font-weight:600;font-family:inherit;line-height:1.4;}
+ .edit-row:hover{background:#2c5b9c;color:#fff;}
+ .drag-handle{display:inline-block;color:#b8b8b8;cursor:grab;user-select:none;font-size:14px;padding:0 6px 0 0;vertical-align:middle;font-weight:700;letter-spacing:-2px;}
+ .drag-handle:hover{color:#2c5b9c;}
+ .drag-handle:active{cursor:grabbing;color:#1f3a5f;}
+ tr.dragging td{opacity:.5;background:#dfeaf5 !important;}
+ tr.drop-target-before td{box-shadow:inset 0 3px 0 0 #2c5b9c;}
+ tr.drop-target-after td{box-shadow:inset 0 -3px 0 0 #2c5b9c;}
  .subgroup-add-btn{margin-left:10px;padding:2px 9px;background:rgba(255,255,255,.75);color:inherit;border:1px dashed currentColor;border-radius:4px;cursor:pointer;font-size:11px;font-family:inherit;font-weight:600;vertical-align:middle;opacity:.85;line-height:1.4;}
  .subgroup-add-btn:hover{opacity:1;background:#fff;}
  @media (max-width:980px){
@@ -395,7 +403,7 @@
 </ul></div></div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot, serverTimestamp, deleteDoc, deleteField, getDocs, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot, serverTimestamp, deleteDoc, deleteField, getDocs, getDoc, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDLguJj7s8KZa6yAH80w-bOvduc3WR5Oss",
@@ -486,7 +494,7 @@ let _inited=false;
 function init(){
   if(_inited) return;   // 중복 실행 방지 (DOMContentLoaded + readyState 이중 호출 → 비고 2번 저장 버그)
   _inited=true;
-  try{ layoutSections(); addRowBtns(); }catch(e){ console.error('layout v2', e); }
+  try{ layoutSections(); addRowBtns(); injectDragHandles(); }catch(e){ console.error('layout v2', e); }
   // 모달 버튼 핸들러
   document.querySelectorAll('#editorModal .btns button').forEach(b=>{
     b.addEventListener('click', ()=>{
@@ -526,6 +534,8 @@ function init(){
       lastSnap[d.id] = { draft: d.data().draft||'', final: d.data().final||'' };
     });
     try{ renderOrphanRows(m); }catch(e){ console.error('orphan v2', e); }
+    // 신규 행 렌더 후 저장된 순서 재적용 (신규 행이 저장 순서대로 자리잡도록)
+    try{ Object.values(_orderCache).forEach(x=>applyOrder(x.group, x.subgroup||'', x.order)); }catch(e){ console.error('reorder v2', e); }
     let drafts=0, finals=0; const _counted=new Set();
     document.querySelectorAll('input.dec').forEach(i=>{
       const k = i.dataset.key, f = i.dataset.field;
@@ -556,6 +566,17 @@ function init(){
     });
     document.getElementById('cnt').textContent = `1차 ${drafts} · 최종 ${finals}`;
   }, err=>{ tick('⚠️ 동기화실패: '+err.code); });
+
+  // 행 순서 (드래그앤드롭 결과) 실시간 구독
+  onSnapshot(collection(db,'erp_term_order'), (snap)=>{
+    _orderCache = {};
+    snap.forEach(d=>{
+      const x = d.data();
+      if(!x || !x.group || !Array.isArray(x.order)) return;
+      _orderCache[d.id] = x;
+      try{ applyOrder(x.group, x.subgroup||'', x.order); }catch(e){ console.error('applyOrder', e); }
+    });
+  }, err=>{ tick('⚠️ 순서동기화실패: '+err.code); });
 
   // 비고 영역
   document.querySelectorAll('.notes').forEach(box=>{
@@ -732,14 +753,19 @@ function buildTermRow(group, erp, mp, custom, subgroup){
   const tr = document.createElement('tr');
   tr.className = custom ? 'custom-row' : '';
   if(subgroup) tr.dataset.subgroup = subgroup;
+  const handle = '<span class="drag-handle" title="드래그해서 순서 변경">⋮⋮</span>';
+  const customBtns = custom ? ' <span class="cust-tag">신규 항목</span> <button type="button" class="edit-row" title="이 신규 항목 수정">✏ 수정</button> <button type="button" class="del-row" title="이 신규 항목 삭제">🗑 삭제</button>' : '';
   tr.innerHTML =
-    '<td>'+e(erp)+(custom?' <span class="cust-tag">신규 항목</span> <button type="button" class="del-row" title="이 신규 항목 삭제">🗑 삭제</button>':'')+'</td>'+
+    '<td>'+handle+' '+e(erp)+customBtns+'</td>'+
     '<td>'+e(mp||'')+'</td>'+
     '<td class="cell"><input class="dec" data-key="'+e(key)+'" data-field="draft" data-group="'+e(group)+'" data-erp="'+e(erp)+'" data-mp="'+e(mp||'')+'" placeholder="1차 수정안"><div class="meta" data-meta-key="'+e(key)+'" data-meta-field="draft"></div></td>'+
     '<td class="cell"><input class="dec final" data-key="'+e(key)+'" data-field="final" data-group="'+e(group)+'" data-erp="'+e(erp)+'" data-mp="'+e(mp||'')+'" placeholder="최종 협의안"><div class="meta" data-meta-key="'+e(key)+'" data-meta-field="final"></div></td>';
   tr.querySelectorAll('input.dec').forEach(wireInput);
   const del = tr.querySelector('.del-row');
   if(del) del.addEventListener('click', ()=>deleteTerm(group, erp, tr));
+  const edit = tr.querySelector('.edit-row');
+  if(edit) edit.addEventListener('click', ()=>editTerm(group, erp, tr));
+  makeRowDraggable(tr);
   return tr;
 }
 
@@ -774,8 +800,209 @@ async function deleteTerm(group, erp, tr){
     await deleteDoc(doc(db, COL, key));
     await addDoc(collection(db,'erp_term_logs'), { key, group, erp, subgroup:sub, field:'(행삭제)', before:erp, after:'', action:'del-term', editor:getEditor(), ts: serverTimestamp() });
     if(tr && tr.parentNode) tr.parentNode.removeChild(tr);
+    // order doc 에서도 제거
+    try{ await removeFromOrder(group, sub, erp); }catch(_){}
     tick('🗑️ 신규 항목 삭제: '+erp);
   }catch(e){ tick('⚠️ 삭제실패: '+e.code); console.error(e); }
+}
+
+async function editTerm(group, erp, tr){
+  if(!getEditor()){ openEditorModal(); return; }
+  const sub = tr && tr.dataset ? tr.dataset.subgroup||'' : '';
+  const oldKey = group+'::'+erp;
+  const inp = tr.querySelector('input.dec[data-field="draft"]');
+  const oldMp = inp ? (inp.dataset.mp||'') : '';
+  let newErp = prompt('ERP 명칭 수정 (비우면 취소):', erp);
+  if(newErp===null) return;
+  newErp = newErp.trim();
+  if(!newErp){ alert('명칭을 비울 수 없습니다.'); return; }
+  if(newErp.indexOf('/')>=0){ alert('명칭에 "/" 는 쓸 수 없습니다.'); return; }
+  let newMp = prompt('가이드 표준명 수정:', oldMp);
+  if(newMp===null) return;
+  newMp = newMp.trim();
+  const renamed = (newErp !== erp);
+  const newKey = group+'::'+newErp;
+  if(renamed && document.querySelector(keySel(newKey))){ alert('이미 있는 항목명: '+newErp); return; }
+  try{
+    if(renamed){
+      // 기존 문서 읽어서 새 키로 복사 후 기존 삭제
+      const oldDoc = await getDoc(doc(db, COL, oldKey));
+      const data = oldDoc.exists() ? oldDoc.data() : { group, erp, custom:true, subgroup:sub };
+      const merged = Object.assign({}, data, { group, erp:newErp, mp:newMp, subgroup:sub, custom:true, updatedAt: serverTimestamp(), updatedBy: getEditor() });
+      await setDoc(doc(db, COL, newKey), merged);
+      await deleteDoc(doc(db, COL, oldKey));
+      // order doc 의 ERP 이름도 갱신
+      try{ await renameInOrder(group, sub, erp, newErp); }catch(_){}
+    } else {
+      await setDoc(doc(db, COL, oldKey), { mp:newMp, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+    }
+    await addDoc(collection(db,'erp_term_logs'), { key:oldKey, group, erp, subgroup:sub, field:'(행수정)', before:JSON.stringify({erp,mp:oldMp}), after:JSON.stringify({erp:newErp,mp:newMp}), action:'edit-term', editor:getEditor(), ts: serverTimestamp() });
+    // DOM 재구성: 같은 자리에 새 row 삽입
+    const isCustom = tr.classList.contains('custom-row');
+    const newRow = buildTermRow(group, newErp, newMp, isCustom, sub);
+    tr.parentNode.replaceChild(newRow, tr);
+    tick('✏ 신규 항목 수정: '+erp+(renamed?' → '+newErp:''));
+  }catch(e){ tick('⚠️ 수정실패: '+e.code); console.error(e); }
+}
+
+/* ===== v3 (2026-06-04): 드래그앤드롭 행 순서 변경 + 신규 항목 수정 ===== */
+let _dragSrc = null;
+let _orderCache = {};
+function getRowSubgroup(tr){
+  let prev = tr.previousElementSibling;
+  while(prev){
+    if(prev.classList && prev.classList.contains('flowsep')) return prev.dataset.subgroup || '';
+    prev = prev.previousElementSibling;
+  }
+  return '';
+}
+function getRowGroup(tr){
+  const inp = tr.querySelector('input.dec');
+  return inp ? inp.dataset.group : '';
+}
+function getRowErp(tr){
+  const inp = tr.querySelector('input.dec');
+  return inp ? inp.dataset.erp : '';
+}
+function findSepForSubgroup(table, subgroup){
+  let found = null;
+  table.querySelectorAll('tr.flowsep').forEach(s=>{ if(!found && s.dataset.subgroup===subgroup) found = s; });
+  return found;
+}
+function clearDropMarkers(){
+  document.querySelectorAll('tr.drop-target-before, tr.drop-target-after').forEach(el=>{
+    el.classList.remove('drop-target-before','drop-target-after');
+  });
+}
+function makeRowDraggable(tr){
+  if(tr.dataset.dragWired) return;
+  tr.dataset.dragWired = '1';
+  tr.addEventListener('mousedown', (e)=>{
+    tr.draggable = !!(e.target && e.target.closest && e.target.closest('.drag-handle'));
+  });
+  tr.addEventListener('dragstart', (e)=>{
+    if(!tr.draggable){ e.preventDefault(); return false; }
+    _dragSrc = tr;
+    tr.classList.add('dragging');
+    try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', getRowErp(tr)||''); }catch(_){}
+  });
+  tr.addEventListener('dragend', ()=>{
+    tr.classList.remove('dragging');
+    clearDropMarkers();
+    _dragSrc = null;
+    tr.draggable = false;
+  });
+  tr.addEventListener('dragover', (e)=>{
+    if(!_dragSrc || _dragSrc===tr) return;
+    if(getRowGroup(_dragSrc)!==getRowGroup(tr)) return;
+    if(getRowSubgroup(_dragSrc)!==getRowSubgroup(tr)) return;
+    e.preventDefault();
+    try{ e.dataTransfer.dropEffect='move'; }catch(_){}
+    const rect = tr.getBoundingClientRect();
+    const after = (e.clientY - rect.top) > rect.height/2;
+    clearDropMarkers();
+    tr.classList.add(after ? 'drop-target-after' : 'drop-target-before');
+  });
+  tr.addEventListener('dragleave', ()=>{
+    tr.classList.remove('drop-target-before','drop-target-after');
+  });
+  tr.addEventListener('drop', async (e)=>{
+    if(!_dragSrc || _dragSrc===tr) return;
+    if(getRowGroup(_dragSrc)!==getRowGroup(tr)) return;
+    if(getRowSubgroup(_dragSrc)!==getRowSubgroup(tr)) return;
+    e.preventDefault();
+    const after = tr.classList.contains('drop-target-after');
+    clearDropMarkers();
+    const grp = getRowGroup(tr), sub = getRowSubgroup(tr);
+    if(after){
+      tr.parentNode.insertBefore(_dragSrc, tr.nextElementSibling);
+    } else {
+      tr.parentNode.insertBefore(_dragSrc, tr);
+    }
+    try{ await persistOrder(grp, sub); }
+    catch(err){ tick('⚠️ 순서저장실패: '+err.code); console.error(err); }
+  });
+}
+function injectDragHandles(){
+  document.querySelectorAll('table[data-group]').forEach(table=>{
+    table.querySelectorAll('tr').forEach(tr=>{
+      if(tr.classList.contains('flowsep')) return;
+      if(!tr.querySelector('input.dec')) return; // 헤더 행 제외
+      const firstTd = tr.querySelector('td');
+      if(!firstTd) return;
+      if(firstTd.querySelector('.drag-handle')) { makeRowDraggable(tr); return; }
+      const handle = document.createElement('span');
+      handle.className = 'drag-handle';
+      handle.textContent = '⋮⋮';
+      handle.title = '드래그해서 순서 변경';
+      firstTd.insertBefore(document.createTextNode(' '), firstTd.firstChild);
+      firstTd.insertBefore(handle, firstTd.firstChild);
+      makeRowDraggable(tr);
+    });
+  });
+}
+async function persistOrder(group, subgroup){
+  if(!getEditor()) return;
+  const table = document.querySelector('table[data-group="'+group+'"]');
+  if(!table) return;
+  const sep = findSepForSubgroup(table, subgroup);
+  if(!sep) return;
+  const erps = [];
+  let cur = sep.nextElementSibling;
+  while(cur && !cur.classList.contains('flowsep')){
+    const erp = getRowErp(cur);
+    if(erp) erps.push(erp);
+    cur = cur.nextElementSibling;
+  }
+  const docKey = group+'::'+(subgroup||'');
+  await setDoc(doc(db,'erp_term_order', docKey), {
+    group, subgroup:subgroup||'', order:erps, updatedAt: serverTimestamp(), updatedBy: getEditor()
+  });
+  await addDoc(collection(db,'erp_term_logs'), { key:docKey, group, subgroup:subgroup||'', field:'(순서변경)', before:'', after:erps.join(' › '), action:'reorder', editor:getEditor(), ts: serverTimestamp() });
+  tick('🔀 순서 저장: '+(subgroup||'전체')+' ('+erps.length+'개)');
+}
+function applyOrder(group, subgroup, order){
+  const table = document.querySelector('table[data-group="'+group+'"]');
+  if(!table || !Array.isArray(order)) return;
+  const sep = findSepForSubgroup(table, subgroup);
+  if(!sep) return;
+  // 다음 flowsep (또는 끝)
+  let nextSep = sep.nextElementSibling;
+  while(nextSep && !nextSep.classList.contains('flowsep')) nextSep = nextSep.nextElementSibling;
+  // 현재 소구분 내 행들 ERP 이름 → tr 매핑
+  const rows = {};
+  let cur = sep.nextElementSibling;
+  while(cur && cur!==nextSep){
+    const erp = getRowErp(cur);
+    if(erp) rows[erp] = cur;
+    cur = cur.nextElementSibling;
+  }
+  // 저장된 순서대로 nextSep 직전에 재삽입
+  order.forEach(erp=>{
+    const row = rows[erp];
+    if(row){
+      if(nextSep) nextSep.parentNode.insertBefore(row, nextSep);
+      else (table.tBodies[0]||table).appendChild(row);
+      delete rows[erp];
+    }
+  });
+  // 저장 순서에 없는 행은 그 뒤에 자연스럽게 남음 (이미 그 위치)
+}
+async function removeFromOrder(group, subgroup, erp){
+  const docKey = group+'::'+(subgroup||'');
+  const ref = doc(db,'erp_term_order', docKey);
+  const snap = await getDoc(ref);
+  if(!snap.exists()) return;
+  const order = (snap.data().order||[]).filter(x=>x!==erp);
+  await setDoc(ref, { group, subgroup:subgroup||'', order, updatedAt: serverTimestamp(), updatedBy: getEditor() });
+}
+async function renameInOrder(group, subgroup, oldErp, newErp){
+  const docKey = group+'::'+(subgroup||'');
+  const ref = doc(db,'erp_term_order', docKey);
+  const snap = await getDoc(ref);
+  if(!snap.exists()) return;
+  const order = (snap.data().order||[]).map(x=>x===oldErp?newErp:x);
+  await setDoc(ref, { group, subgroup:subgroup||'', order, updatedAt: serverTimestamp(), updatedBy: getEditor() });
 }
 
 function renderOrphanRows(m){
