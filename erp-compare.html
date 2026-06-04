@@ -130,6 +130,30 @@
  tr.drop-target-after td{box-shadow:inset 0 -3px 0 0 #2c5b9c;}
  tr.flowsep .drag-handle{color:rgba(0,0,0,.32);}
  tr.flowsep .drag-handle:hover{color:inherit;}
+ /* P1: 승인 / 사유 / 다운스트림 반영 */
+ .row-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center;font-size:11px;}
+ .row-actions .group-label{color:#888;font-size:10px;margin-right:2px;}
+ .approvals,.downstream{display:inline-flex;gap:3px;}
+ .ap-chk,.ds-chk{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:20px;padding:0 5px;border:1px solid #c8d4e0;background:#fff;color:#888;border-radius:3px;cursor:pointer;font-size:10.5px;font-family:inherit;font-weight:600;line-height:1;user-select:none;}
+ .ap-chk:hover,.ds-chk:hover{background:#f0f4fb;border-color:#2c5b9c;color:#2c5b9c;}
+ .ap-chk.on{background:#3a7a3a;border-color:#2e6a2e;color:#fff;}
+ .ap-chk.on:hover{background:#2e6a2e;}
+ .ds-chk.on{background:#2c5b9c;border-color:#1f3a5f;color:#fff;}
+ .ds-chk.on:hover{background:#1f3a5f;}
+ .ap-chk[disabled],.ds-chk[disabled]{opacity:.45;cursor:not-allowed;}
+ .rationale-toggle{background:none;border:0;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:3px;color:#888;}
+ .rationale-toggle:hover{background:#f0f4fb;color:#2c5b9c;}
+ .rationale-toggle.has-text{color:#e8a13a;}
+ .rationale-box{display:none;flex-basis:100%;margin-top:4px;background:#fffef5;border:1px solid #e8d68c;border-radius:4px;padding:6px 8px;}
+ .rationale-box.show{display:block;}
+ .rationale-box textarea{width:100%;box-sizing:border-box;border:1px solid #e0d28a;border-radius:3px;padding:5px 7px;font-family:inherit;font-size:12px;background:#fff;resize:vertical;min-height:32px;}
+ .rationale-box textarea:focus{outline:none;border-color:#c98520;box-shadow:0 0 0 2px rgba(232,161,58,.15);}
+ .rationale-meta{font-size:10.5px;color:#888;margin-top:3px;}
+ .rationale-preview{font-size:10.5px;color:#a07020;margin-left:3px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;}
+ tr.confirmed td.cell{background:#f0fbf0 !important;}
+ tr.confirmed .ap-chk{border-color:#2e6a2e;}
+ tr.confirmed::before{content:'';}
+ tr.deployed td{background:#e8f5e8 !important;}
  .undo-btn{padding:7px 14px;background:#e8a13a;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:600;}
  .undo-btn:hover{background:#c98520;}
  .undo-btn:disabled{background:#bbb;cursor:not-allowed;}
@@ -166,7 +190,8 @@
   </select>
  </label>
  <button class="undo-btn" onclick="undoLast()" title="가장 최근 변경 1건을 되돌립니다 (최대 20번 연속)">↩ 되돌리기</button>
- <button onclick="exportCSV()">📥 결정값 CSV 내보내기</button>
+ <button onclick="exportCSV()" title="회의록·보고용 — 사람이 읽기 좋은 형식 (분류·ERP명·가이드·1차·최종·승인·반영·사유)">📥 회의록 CSV</button>
+ <button onclick="exportCSVInjection()" title="ERP·상품DB·챗봇 일괄 주입용 — source/target 페어">📥 주입용 CSV</button>
  <span class="status"><span id="cnt" style="margin-right:10px;color:#2c5b9c;font-weight:600;">0건 입력됨</span><span id="status">연결 중...</span></span>
 </div>
 
@@ -501,7 +526,7 @@ let _inited=false;
 function init(){
   if(_inited) return;   // 중복 실행 방지 (DOMContentLoaded + readyState 이중 호출 → 비고 2번 저장 버그)
   _inited=true;
-  try{ layoutSections(); addRowBtns(); injectDragHandles(); }catch(e){ console.error('layout v2', e); }
+  try{ layoutSections(); addRowBtns(); injectDragHandles(); injectRowActions(); }catch(e){ console.error('layout v2', e); }
   // 모달 버튼 핸들러
   document.querySelectorAll('#editorModal .btns button').forEach(b=>{
     b.addEventListener('click', ()=>{
@@ -544,6 +569,8 @@ function init(){
     // 신규 행 렌더 후 저장된 순서 재적용 (소구분 순서 → 행 순서 차례로)
     try{ Object.keys(_subOrderCache).forEach(g=>applySubgroupOrder(g, _subOrderCache[g])); }catch(e){ console.error('reorder-sub v2', e); }
     try{ Object.values(_orderCache).forEach(x=>applyOrder(x.group, x.subgroup||'', x.order)); }catch(e){ console.error('reorder v2', e); }
+    // P1: 승인/사유/반영 상태 적용
+    try{ Object.keys(m).forEach(k=>applyMetaActionsForDoc(k, m[k])); }catch(e){ console.error('meta-actions v5', e); }
     let drafts=0, finals=0; const _counted=new Set();
     document.querySelectorAll('input.dec').forEach(i=>{
       const k = i.dataset.key, f = i.dataset.field;
@@ -784,16 +811,20 @@ function buildTermRow(group, erp, mp, custom, subgroup){
   if(subgroup) tr.dataset.subgroup = subgroup;
   const handle = '<span class="drag-handle" title="드래그해서 순서 변경">⋮⋮</span>';
   const customBtns = custom ? ' <span class="cust-tag">신규 항목</span> <button type="button" class="edit-row" title="이 신규 항목 수정">✏ 수정</button> <button type="button" class="del-row" title="이 신규 항목 삭제">🗑 삭제</button>' : '';
+  tr.dataset.rowKey = key;
   tr.innerHTML =
     '<td>'+handle+' '+e(erp)+customBtns+'</td>'+
     '<td>'+e(mp||'')+'</td>'+
     '<td class="cell"><input class="dec" data-key="'+e(key)+'" data-field="draft" data-group="'+e(group)+'" data-erp="'+e(erp)+'" data-mp="'+e(mp||'')+'" placeholder="1차 수정안"><div class="meta" data-meta-key="'+e(key)+'" data-meta-field="draft"></div></td>'+
-    '<td class="cell"><input class="dec final" data-key="'+e(key)+'" data-field="final" data-group="'+e(group)+'" data-erp="'+e(erp)+'" data-mp="'+e(mp||'')+'" placeholder="최종 협의안"><div class="meta" data-meta-key="'+e(key)+'" data-meta-field="final"></div></td>';
+    '<td class="cell"><input class="dec final" data-key="'+e(key)+'" data-field="final" data-group="'+e(group)+'" data-erp="'+e(erp)+'" data-mp="'+e(mp||'')+'" placeholder="최종 협의안"><div class="meta" data-meta-key="'+e(key)+'" data-meta-field="final"></div>'+
+    buildRowActionsHtml(key)+
+    '</td>';
   tr.querySelectorAll('input.dec').forEach(wireInput);
   const del = tr.querySelector('.del-row');
   if(del) del.addEventListener('click', ()=>deleteTerm(group, erp, tr));
   const edit = tr.querySelector('.edit-row');
   if(edit) edit.addEventListener('click', ()=>editTerm(group, erp, tr));
+  wireRowActions(tr, key, group, erp);
   makeRowDraggable(tr);
   return tr;
 }
@@ -1051,6 +1082,258 @@ async function renameInOrder(group, subgroup, oldErp, newErp){
   const order = (snap.data().order||[]).map(x=>x===oldErp?newErp:x);
   await setDoc(ref, { group, subgroup:subgroup||'', order, updatedAt: serverTimestamp(), updatedBy: getEditor() });
 }
+
+/* ===== v5 (2026-06-04): P1 — 승인 체크 5칸 + 사유 + 다운스트림 4칸 + CSV 2종 ===== */
+const APPROVAL_ROLES = [
+  { key:'ceo',        short:'대표', label:'대표' },
+  { key:'production', short:'생산', label:'생산팀(송기용)' },
+  { key:'cs',         short:'CS',  label:'CS(천현정)' },
+  { key:'marketing',  short:'마케',label:'마케팅·웹(박상준)' },
+  { key:'design',     short:'디자',label:'디자인(강두원)' }
+];
+const DOWNSTREAM_TARGETS = [
+  { key:'erp',       short:'E',  label:'ERP 반영' },
+  { key:'productdb', short:'DB', label:'상품DB 반영' },
+  { key:'chatbot',   short:'봇', label:'챗봇 노드 반영' },
+  { key:'cs',        short:'CS', label:'CS 매뉴얼 반영' }
+];
+
+function buildRowActionsHtml(key){
+  const e = escapeHtml;
+  let apHtml = '<span class="group-label">승인</span><span class="approvals">';
+  APPROVAL_ROLES.forEach(r=>{
+    apHtml += '<button type="button" class="ap-chk" data-role="'+r.key+'" data-key="'+e(key)+'" title="'+r.label+' 승인 (클릭=토글)">'+r.short+'</button>';
+  });
+  apHtml += '</span>';
+  let dsHtml = '<span class="group-label">반영</span><span class="downstream">';
+  DOWNSTREAM_TARGETS.forEach(t=>{
+    dsHtml += '<button type="button" class="ds-chk" data-target="'+t.key+'" data-key="'+e(key)+'" title="'+t.label+' (5명 승인 후 활성, 클릭=토글)" disabled>'+t.short+'</button>';
+  });
+  dsHtml += '</span>';
+  const rationale = '<button type="button" class="rationale-toggle" data-key="'+e(key)+'" title="결정 사유 / 비고 (왜 이 안인가)">📝</button><span class="rationale-preview" data-rationale-preview-key="'+e(key)+'"></span>';
+  const box = '<div class="rationale-box" data-rationale-box-key="'+e(key)+'"><textarea placeholder="이 행의 결정 사유 · 비고 (예: 장비명 아닌 후공정명으로 통일 — 송팀장 제안)"></textarea><div class="rationale-meta" data-rationale-meta-key="'+e(key)+'"></div></div>';
+  return '<div class="row-actions">'+apHtml+rationale+dsHtml+'</div>'+box;
+}
+
+function wireRowActions(tr, key, group, erp){
+  tr.querySelectorAll('.ap-chk').forEach(btn=>{
+    btn.addEventListener('click', ()=>toggleApproval(key, group, erp, btn.dataset.role));
+  });
+  tr.querySelectorAll('.ds-chk').forEach(btn=>{
+    btn.addEventListener('click', ()=>toggleDownstream(key, group, erp, btn.dataset.target));
+  });
+  const rBtn = tr.querySelector('.rationale-toggle');
+  if(rBtn) rBtn.addEventListener('click', ()=>toggleRationaleBox(key, tr));
+  const ta = tr.querySelector('.rationale-box textarea');
+  if(ta){
+    let to;
+    ta.addEventListener('focus', ()=>{ if(!getEditor()){ ta.blur(); openEditorModal(ta); } });
+    ta.addEventListener('input', ()=>{
+      clearTimeout(to);
+      to = setTimeout(()=>saveRationale(key, group, erp, ta.value), 500);
+    });
+  }
+}
+
+// 기존 정적 HTML 행에도 row-actions 주입
+function injectRowActions(){
+  document.querySelectorAll('table[data-group] tr').forEach(tr=>{
+    if(tr.classList.contains('flowsep')) return;
+    if(!tr.querySelector('input.dec')) return;
+    if(tr.querySelector('.row-actions')) return;
+    const finalCell = tr.querySelector('td.cell:has(input.dec.final)');
+    if(!finalCell) return;
+    const inp = finalCell.querySelector('input.dec.final');
+    if(!inp) return;
+    const key = inp.dataset.key, group = inp.dataset.group, erp = inp.dataset.erp;
+    tr.dataset.rowKey = key;
+    finalCell.insertAdjacentHTML('beforeend', buildRowActionsHtml(key));
+    wireRowActions(tr, key, group, erp);
+  });
+}
+
+function toggleRationaleBox(key, tr){
+  const box = tr.querySelector('.rationale-box');
+  if(box) box.classList.toggle('show');
+}
+
+async function toggleApproval(key, group, erp, role){
+  if(!getEditor()){ openEditorModal(); return; }
+  const editor = getEditor();
+  const ref = doc(db, COL, key);
+  const snap = await getDoc(ref);
+  const data = snap.exists() ? snap.data() : {};
+  const ap = data.approvals || {};
+  const cur = ap[role];
+  const wasOn = !!(cur && cur.by);
+  const next = wasOn ? null : { by: editor, at: new Date().toISOString() };
+  const payload = { group, erp, updatedAt: serverTimestamp(), updatedBy: editor };
+  payload['approvals.'+role] = next ? next : deleteField();
+  await setDoc(ref, payload, {merge:true});
+  await addDoc(collection(db,'erp_term_logs'), {
+    key, group, erp, field:'(승인-'+role+')',
+    before: wasOn ? (cur.by||'') : '',
+    after: wasOn ? '' : editor,
+    action: wasOn ? 'unapprove' : 'approve',
+    role, editor, ts: serverTimestamp()
+  });
+  tick((wasOn?'☐ 승인해제':'✅ 승인')+' ['+role+']: '+erp+' ('+editor+')');
+}
+
+async function toggleDownstream(key, group, erp, target){
+  if(!getEditor()){ openEditorModal(); return; }
+  const editor = getEditor();
+  const ref = doc(db, COL, key);
+  const snap = await getDoc(ref);
+  const data = snap.exists() ? snap.data() : {};
+  // 5명 승인 미완료면 차단
+  const apCnt = APPROVAL_ROLES.filter(r => data.approvals && data.approvals[r.key] && data.approvals[r.key].by).length;
+  if(apCnt < APPROVAL_ROLES.length){
+    alert('최종확정(5명 승인 완료) 후에 반영 체크 가능합니다. 현재 '+apCnt+'/'+APPROVAL_ROLES.length+' 승인.');
+    return;
+  }
+  const ds = data.downstream || {};
+  const cur = ds[target];
+  const wasOn = !!(cur && cur.by);
+  const next = wasOn ? null : { by: editor, at: new Date().toISOString() };
+  const payload = { group, erp, updatedAt: serverTimestamp(), updatedBy: editor };
+  payload['downstream.'+target] = next ? next : deleteField();
+  await setDoc(ref, payload, {merge:true});
+  await addDoc(collection(db,'erp_term_logs'), {
+    key, group, erp, field:'(반영-'+target+')',
+    before: wasOn ? (cur.by||'') : '',
+    after: wasOn ? '' : editor,
+    action: wasOn ? 'undeploy' : 'deploy',
+    target, editor, ts: serverTimestamp()
+  });
+  tick((wasOn?'☐ 반영해제':'📍 반영')+' ['+target+']: '+erp);
+}
+
+async function saveRationale(key, group, erp, text){
+  if(!getEditor()){ openEditorModal(); return; }
+  const editor = getEditor();
+  const ref = doc(db, COL, key);
+  const snap = await getDoc(ref);
+  const data = snap.exists() ? snap.data() : {};
+  const before = data.rationale || '';
+  const after = (text||'').trim();
+  if(before === after) return;
+  const payload = { group, erp, updatedAt: serverTimestamp(), updatedBy: editor };
+  if(after===''){
+    payload.rationale = deleteField();
+    payload.rationale_by = deleteField();
+    payload.rationale_at = deleteField();
+  } else {
+    payload.rationale = after;
+    payload.rationale_by = editor;
+    payload.rationale_at = serverTimestamp();
+  }
+  await setDoc(ref, payload, {merge:true});
+  await addDoc(collection(db,'erp_term_logs'), {
+    key, group, erp, field:'(사유)',
+    before, after,
+    action: after==='' ? 'rationale-clear' : (before==='' ? 'rationale-create' : 'rationale-update'),
+    editor, ts: serverTimestamp()
+  });
+  tick('📝 사유 저장: '+erp);
+}
+
+// snapshot 에서 호출 — 각 doc 의 approvals/downstream/rationale 을 UI 에 반영
+function applyMetaActionsForDoc(key, data){
+  // 승인
+  const apCnt = APPROVAL_ROLES.filter(r => data.approvals && data.approvals[r.key] && data.approvals[r.key].by).length;
+  document.querySelectorAll('.ap-chk[data-key="'+cssEscape(key)+'"]').forEach(btn=>{
+    const role = btn.dataset.role;
+    const v = data.approvals && data.approvals[role];
+    if(v && v.by){
+      btn.classList.add('on');
+      btn.title = APPROVAL_ROLES.find(r=>r.key===role).label+' 승인 — '+v.by+' / '+fmtIso(v.at)+' (클릭=해제)';
+    } else {
+      btn.classList.remove('on');
+      btn.title = APPROVAL_ROLES.find(r=>r.key===role).label+' 승인 (클릭=승인)';
+    }
+  });
+  const confirmed = apCnt === APPROVAL_ROLES.length;
+  // 다운스트림 — 5명 승인 완료여야 활성화
+  document.querySelectorAll('.ds-chk[data-key="'+cssEscape(key)+'"]').forEach(btn=>{
+    const target = btn.dataset.target;
+    btn.disabled = !confirmed;
+    const v = data.downstream && data.downstream[target];
+    if(v && v.by){
+      btn.classList.add('on');
+      btn.title = DOWNSTREAM_TARGETS.find(t=>t.key===target).label+' — '+v.by+' / '+fmtIso(v.at);
+    } else {
+      btn.classList.remove('on');
+      btn.title = DOWNSTREAM_TARGETS.find(t=>t.key===target).label+(confirmed?' (클릭=반영)':' — 5명 승인 후 활성');
+    }
+  });
+  // 행 상태 클래스
+  const dsCnt = DOWNSTREAM_TARGETS.filter(t => data.downstream && data.downstream[t.key] && data.downstream[t.key].by).length;
+  document.querySelectorAll('tr[data-row-key="'+cssEscape(key)+'"]').forEach(tr=>{
+    tr.classList.toggle('confirmed', confirmed);
+    tr.classList.toggle('deployed', confirmed && dsCnt === DOWNSTREAM_TARGETS.length);
+  });
+  // 사유
+  const rText = data.rationale || '';
+  const rBy = data.rationale_by || '';
+  const rAt = data.rationale_at;
+  document.querySelectorAll('.rationale-toggle[data-key="'+cssEscape(key)+'"]').forEach(btn=>{
+    btn.classList.toggle('has-text', !!rText);
+    btn.textContent = rText ? '📝•' : '📝';
+  });
+  document.querySelectorAll('.rationale-preview[data-rationale-preview-key="'+cssEscape(key)+'"]').forEach(span=>{
+    span.textContent = rText ? '"'+rText.slice(0,50)+(rText.length>50?'…':'')+'"' : '';
+  });
+  document.querySelectorAll('.rationale-box[data-rationale-box-key="'+cssEscape(key)+'"]').forEach(box=>{
+    const ta = box.querySelector('textarea');
+    if(ta && document.activeElement!==ta) ta.value = rText;
+    const meta = box.querySelector('.rationale-meta');
+    if(meta) meta.innerHTML = rText ? '<b>'+escapeHtml(rBy)+'</b> · '+fmtDate(rAt) : '';
+  });
+}
+
+function cssEscape(s){ return String(s).replace(/"/g,'\\"').replace(/\\/g,'\\\\'); }
+function fmtIso(iso){
+  if(!iso) return '';
+  try{ const d = new Date(iso); return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+  catch(_){ return ''; }
+}
+
+// 주입용 CSV (ERP·상품DB·챗봇 일괄 처리용)
+window.exportCSVInjection = async function(){
+  const snap = await getDocs(collection(db, COL));
+  const rows = [['group','subgroup','erp_name','unified_name','status','approvals','confirmed_at','rationale','deployed_to']];
+  snap.forEach(d=>{
+    const x = d.data();
+    if(!x.final && !x.draft) return;
+    const apOk = APPROVAL_ROLES.filter(r => x.approvals && x.approvals[r.key] && x.approvals[r.key].by);
+    const apNames = apOk.map(r => r.short+':'+x.approvals[r.key].by).join('|');
+    const status = apOk.length === APPROVAL_ROLES.length ? 'confirmed' : (x.final ? 'final-draft' : 'in-progress');
+    const dsOk = DOWNSTREAM_TARGETS.filter(t => x.downstream && x.downstream[t.key] && x.downstream[t.key].by);
+    const dsList = dsOk.map(t => t.key).join('|');
+    let confirmedAt = '';
+    if(apOk.length === APPROVAL_ROLES.length){
+      const ats = apOk.map(r => x.approvals[r.key].at).filter(Boolean).sort();
+      confirmedAt = ats[ats.length-1] || '';
+    }
+    rows.push([
+      x.group||'', x.subgroup||'', x.erp||'',
+      x.final || x.draft || '',
+      status,
+      apNames,
+      confirmedAt,
+      x.rationale||'',
+      dsList
+    ]);
+  });
+  if(rows.length===1){ alert('주입할 데이터가 없습니다.'); return; }
+  const csv = '﻿' + rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ERP_용어_주입용_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+};
 
 /* ===== v4 (2026-06-04): 소구분 자체 드래그앤드롭 + UNDO 20회 ===== */
 let _subOrderCache = {};
@@ -1319,25 +1602,41 @@ function renderOrphanRows(m){
 
 window.exportCSV = async function(){
   const snap = await getDocs(collection(db, COL));
-  const rows = [['분류','구분','소분류','ERP명칭','1차 수정안','1차 편집자','1차 시각','최종 협의안','최종 편집자','최종 시각']];
+  const head = ['분류','구분','소분류','ERP명칭','1차 수정안','1차 편집자','1차 시각','최종 협의안','최종 편집자','최종 시각'];
+  APPROVAL_ROLES.forEach(r => head.push('승인-'+r.short, '승인시각-'+r.short));
+  head.push('상태','사유','사유 작성자');
+  DOWNSTREAM_TARGETS.forEach(t => head.push('반영-'+t.short));
+  const rows = [head];
   snap.forEach(d=>{
     const x = d.data();
     if(!x.draft && !x.final) return;
-    rows.push([
+    const row = [
       x.group||'',
       x.custom ? '별도추가건' : '기존',
       x.subgroup||'',
       x.erp||'',
       x.draft||'', x.draft_by||'', x.draft_at?.toDate?.()?.toLocaleString()||'',
       x.final||'', x.final_by||'', x.final_at?.toDate?.()?.toLocaleString()||''
-    ]);
+    ];
+    APPROVAL_ROLES.forEach(r=>{
+      const v = x.approvals && x.approvals[r.key];
+      row.push(v && v.by ? v.by : '', v && v.at ? v.at : '');
+    });
+    const apOk = APPROVAL_ROLES.filter(r => x.approvals && x.approvals[r.key] && x.approvals[r.key].by).length;
+    row.push(apOk === APPROVAL_ROLES.length ? '최종확정' : (x.final ? '협의중-1차안 입력' : '미착수'));
+    row.push(x.rationale||'', x.rationale_by||'');
+    DOWNSTREAM_TARGETS.forEach(t=>{
+      const v = x.downstream && x.downstream[t.key];
+      row.push(v && v.by ? v.by+' ('+(v.at||'').slice(0,16)+')' : '');
+    });
+    rows.push(row);
   });
   if(rows.length===1){ alert('입력된 결정값이 없습니다.'); return; }
   const csv = '\ufeff' + rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'ERP_용어_최종결정_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.download = 'ERP_용어_회의록_'+new Date().toISOString().slice(0,10)+'.csv';
   a.click();
 };
 
