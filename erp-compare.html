@@ -1175,8 +1175,8 @@ async function toggleApproval(key, group, erp, role){
     btn.classList.toggle('on', !wasOn);
   });
   const next = wasOn ? null : { by: editor, at: new Date().toISOString() };
-  const payload = { group, erp, updatedAt: serverTimestamp(), updatedBy: editor };
-  payload['approvals.'+role] = next ? next : deleteField();
+  // Firestore setDoc+merge는 dot notation 지원 안 함 → nested 객체 + deleteField sentinel 사용
+  const payload = { group, erp, updatedAt: serverTimestamp(), updatedBy: editor, approvals: { [role]: next ? next : deleteField() } };
   try{
     await setDoc(ref, payload, {merge:true});
     await addDoc(collection(db,'erp_term_logs'), {
@@ -1211,8 +1211,8 @@ async function toggleDownstream(key, group, erp, target){
     btn.classList.toggle('on', !wasOn);
   });
   const next = wasOn ? null : { by: editor, at: new Date().toISOString() };
-  const payload = { group, erp, updatedAt: serverTimestamp(), updatedBy: editor };
-  payload['downstream.'+target] = next ? next : deleteField();
+  // Firestore setDoc+merge는 dot notation 지원 안 함 → nested 객체 + deleteField sentinel
+  const payload = { group, erp, updatedAt: serverTimestamp(), updatedBy: editor, downstream: { [target]: next ? next : deleteField() } };
   try{
     await setDoc(ref, payload, {merge:true});
     await addDoc(collection(db,'erp_term_logs'), {
