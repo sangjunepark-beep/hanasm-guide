@@ -502,6 +502,12 @@ function tick(msg){ status().textContent = msg + ' · ' + new Date().toLocaleTim
 // 마지막 동기화된 값 캐시 (이전 값 추적용)
 const lastSnap = {};
 
+// [2026-06-05] 행별 독립 키 — stage 그룹은 subgroup 포함하여 같은 ERP명이 여러 공정 흐름에 등장해도 다른 행으로 분리 저장
+function termKey(group, subgroup, erp){
+  if(group === 'stage' && subgroup) return group+'::'+subgroup+'::'+erp;
+  return group+'::'+erp;
+}
+
 // 디바운스 저장 (필드 단위: draft 또는 final)
 const timers = {};
 function saveCell(key, field, group, erp, value){
@@ -569,7 +575,8 @@ let _inited=false;
 function init(){
   if(_inited) return;   // 중복 실행 방지 (DOMContentLoaded + readyState 이중 호출 → 비고 2번 저장 버그)
   _inited=true;
-  try{ layoutSections(); addRowBtns(); injectDragHandles(); injectRowActions(); injectCopyButtons(); }catch(e){ console.error('layout v2', e); }
+  try{ layoutSections(); addRowBtns(); rewriteStageKeysBySubgroup(); injectDragHandles(); injectRowActions(); injectCopyButtons(); }catch(e){ console.error('layout v2', e); }
+  try{ migrateLegacyStageKeys(); }catch(e){ console.error('migrate stage keys', e); }
   // 모달 버튼 핸들러
   document.querySelectorAll('#editorModal .btns button').forEach(b=>{
     b.addEventListener('click', ()=>{
@@ -844,6 +851,91 @@ function addRowBtns(){
     }
   });
 }
+// [2026-06-05] stage 정적 행의 data-key 를 subgroup 포함 형태로 재작성 — 같은 erp 라도 다른 공정 흐름이면 다른 행/문서로 분리
+function rewriteStageKeysBySubgroup(){
+  const table = document.querySelector('table[data-group="stage"]');
+  if(!table) return;
+  let curSub = '';
+  table.querySelectorAll('tr').forEach(tr=>{
+    if(tr.classList.contains('flowsep')){
+      curSub = tr.dataset.subgroup || normSubgroup(tr.querySelector('td')?.textContent || '');
+      tr.dataset.subgroup = curSub;
+      return;
+    }
+    if(!curSub) return;
+    if(tr.classList.contains('actions-row')) return;
+    if(tr.classList.contains('copied-row')) return; // copy-row 시스템은 옛 키 유지 (자동 연동 의도)
+    const inps = tr.querySelectorAll('input.dec[data-group="stage"]');
+    if(!inps.length) return;
+    let changed = false;
+    inps.forEach(inp=>{
+      const erp = inp.dataset.erp;
+      if(!erp) return;
+      const newKey = 'stage::'+curSub+'::'+erp;
+      if(inp.dataset.key !== newKey){ inp.dataset.key = newKey; changed = true; }
+      const field = inp.dataset.field;
+      const meta = tr.querySelector('.meta[data-meta-field="'+field+'"]');
+      if(meta) meta.dataset.metaKey = newKey;
+    });
+    if(changed){
+      if(!tr.dataset.subgroup) tr.dataset.subgroup = curSub;
+      const firstErp = inps[0]?.dataset?.erp;
+      if(firstErp){
+        const newRowKey = 'stage::'+curSub+'::'+firstErp;
+        if(tr.dataset.rowKey && tr.dataset.rowKey.startsWith('stage::') && tr.dataset.rowKey.split('::').length === 2){
+          tr.dataset.rowKey = newRowKey;
+        } else if(!tr.dataset.rowKey){
+          tr.dataset.rowKey = newRowKey;
+        }
+      }
+    }
+  });
+}
+
+// [2026-06-05] 옛 stage::erp doc 자동 마이그 — 첫 등장 subgroup 의 새 doc(stage::sub::erp)으로 값 복사. 한 번만 실행.
+async function migrateLegacyStageKeys(){
+  if(localStorage.getItem('stage_legacy_migrated_v1') === 'done') return;
+  const table = document.querySelector('table[data-group="stage"]');
+  if(!table) return;
+  // 각 erp 의 첫 등장 subgroup 매핑 구축
+  const firstSubByErp = {};
+  let curSub = '';
+  table.querySelectorAll('tr').forEach(tr=>{
+    if(tr.classList.contains('flowsep')){ curSub = tr.dataset.subgroup || ''; return; }
+    if(!curSub || tr.classList.contains('actions-row') || tr.classList.contains('copied-row')) return;
+    const inp = tr.querySelector('input.dec[data-group="stage"]');
+    if(!inp) return;
+    const erp = inp.dataset.erp;
+    if(erp && !(erp in firstSubByErp)) firstSubByErp[erp] = curSub;
+  });
+  try{
+    const snap = await getDocs(query(collection(db, COL), where('group','==','stage')));
+    let migrated = 0;
+    for(const d of snap.docs){
+      const id = d.id;
+      const parts = id.split('::');
+      if(parts.length !== 2) continue; // 이미 새 형태 (stage::sub::erp) 는 ::3개
+      const erp = parts[1];
+      const targetSub = firstSubByErp[erp];
+      if(!targetSub) continue;
+      const newId = 'stage::'+targetSub+'::'+erp;
+      const newRef = doc(db, COL, newId);
+      const existSnap = await getDoc(newRef);
+      if(existSnap.exists()) continue; // 이미 새 doc 존재 → 건드리지 않음
+      const data = d.data() || {};
+      const payload = Object.assign({}, data, {
+        group:'stage', erp, subgroup: targetSub,
+        migrated_from: id, migrated_at: serverTimestamp()
+      });
+      delete payload.copies; // copies 배열은 옛 시스템 — 새 doc 에서는 사용 X
+      await setDoc(newRef, payload, {merge:true});
+      migrated++;
+    }
+    localStorage.setItem('stage_legacy_migrated_v1', 'done');
+    if(migrated) tick('🔄 옛 공정 데이터 마이그: '+migrated+'건');
+  }catch(e){ console.error('migrateLegacyStageKeys', e); }
+}
+
 function insertCustomRow(table, subgroup, tr){
   let sep = null;
   if(subgroup){
@@ -870,7 +962,7 @@ function wireInput(inp){
 function keySel(key){ return 'input.dec[data-key="'+String(key).replace(/"/g,'\\"')+'"]'; }
 
 function buildTermRow(group, erp, mp, custom, subgroup){
-  const key = group+'::'+erp, e = escapeHtml;
+  const key = termKey(group, subgroup, erp), e = escapeHtml;
   const tr = document.createElement('tr');
   tr.className = custom ? 'custom-row' : '';
   if(subgroup) tr.dataset.subgroup = subgroup;
@@ -917,10 +1009,10 @@ async function promptAddTerm(group, subgroup){
   erp = erp.trim(); if(!erp) return;
   // [#11] 입력 가드 강화 — 제어문자/매우 긴 문자열/Firestore doc id 제약 차단
   if(!validateTermName(erp)) return;
-  const key = group+'::'+erp;
-  // [#7] 같은 키 이미 있으면 경고 (editTerm 처럼) — 데이터 자동 연동 사실 명시
+  const key = termKey(group, subgroup, erp);
+  // [#7] 같은 키 이미 있으면 경고 — stage 그룹은 (같은 subgroup + 같은 erp)일 때만 충돌
   if(document.querySelector(keySel(key))){
-    if(!confirm('"'+erp+'" 이라는 이름이 이미 같은 그룹에 있습니다.\n\n진행하면 같은 Firestore 문서를 공유하게 되어, 1차/최종 협의안·전체동의·사유가 서로 자동 연동됩니다.\n\n그래도 진행할까요?')) return;
+    if(!confirm('"'+erp+'"'+(subgroup?' ('+subgroup+')':'')+' 가 이미 있습니다.\n\n진행하면 같은 Firestore 문서를 공유하게 되어 1차/최종 협의안 값이 서로 연동됩니다.\n\n그래도 진행할까요?')) return;
   }
   let mp = (prompt('가이드 표준명 (선택, 없으면 비워두기):','')||'').trim();
   const table = document.querySelector('table[data-group="'+group+'"]');
@@ -985,7 +1077,7 @@ async function deleteTerm(group, erp, tr){
 async function editTerm(group, erp, tr){
   if(!getEditor()){ openEditorModal(); return; }
   const sub = tr && tr.dataset ? tr.dataset.subgroup||'' : '';
-  const oldKey = group+'::'+erp;
+  const oldKey = termKey(group, sub, erp);
   const draftInp = tr.querySelector('input.dec[data-field="draft"]');
   const finalInp = tr.querySelector('input.dec[data-field="final"]');
   const oldMp = draftInp ? (draftInp.dataset.mp||'') : '';
@@ -1002,7 +1094,7 @@ async function editTerm(group, erp, tr){
   if(newMp===null) return;
   newMp = newMp.trim();
   const renamed = (newErp !== erp);
-  const newKey = group+'::'+newErp;
+  const newKey = termKey(group, sub, newErp);
   if(renamed && document.querySelector(keySel(newKey))){
     if(!confirm('"'+newErp+'" 라는 이름의 항목이 이미 있습니다.\n\n진행하면 같은 데이터 문서를 공유하게 되어, 1차/최종 협의안 값이 서로 연동됩니다.\n그래도 진행할까요?')) return;
   }
@@ -2035,6 +2127,8 @@ function renderOrphanRows(m){
     const d = m[key];
     if(!d || !d.group || !GROUP_LABEL[d.group]) return;
     if(document.querySelector(keySel(key))) return;
+    // [2026-06-05] 옛 stage::erp doc 은 마이그 대상 — copy-row 시스템이 여전히 참조하므로 보존하되 orphan 행으로는 그리지 않음
+    if(d.group === 'stage' && String(key).split('::').length === 2) return;
     const table = document.querySelector('table[data-group="'+d.group+'"]');
     if(!table) return;
     const sub = d.subgroup||'';
