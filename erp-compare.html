@@ -134,13 +134,16 @@
  .row-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center;font-size:11px;}
  .row-actions .group-label{color:#888;font-size:10px;margin-right:2px;}
  .approvals,.downstream{display:inline-flex;gap:3px;}
- .ap-chk{display:inline-flex;align-items:center;justify-content:center;min-width:48px;height:22px;padding:0 7px;border:1px solid #c8d4e0;background:#fff;color:#888;border-radius:3px;cursor:pointer;font-size:11px;font-family:inherit;font-weight:600;line-height:1;user-select:none;}
- .ds-chk{display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:22px;padding:0 8px;border:1px solid #c8d4e0;background:#fff;color:#888;border-radius:3px;cursor:pointer;font-size:11px;font-family:inherit;font-weight:600;line-height:1;user-select:none;}
+ .ap-chk{display:inline-flex;align-items:center;justify-content:center;min-width:56px;height:24px;padding:0 9px;border:1.5px solid #c8d4e0;background:#fff;color:#666;border-radius:4px;cursor:pointer;font-size:11.5px;font-family:inherit;font-weight:600;line-height:1;user-select:none;transition:background .12s,color .12s,border-color .12s,box-shadow .12s,transform .08s;}
+ .ds-chk{display:inline-flex;align-items:center;justify-content:center;min-width:60px;height:24px;padding:0 10px;border:1.5px solid #c8d4e0;background:#fff;color:#666;border-radius:4px;cursor:pointer;font-size:11.5px;font-family:inherit;font-weight:600;line-height:1;user-select:none;transition:background .12s,color .12s,border-color .12s,box-shadow .12s,transform .08s;}
  .ap-chk:hover,.ds-chk:hover{background:#f0f4fb;border-color:#2c5b9c;color:#2c5b9c;}
- .ap-chk.on{background:#3a7a3a;border-color:#2e6a2e;color:#fff;}
- .ap-chk.on:hover{background:#2e6a2e;}
- .ds-chk.on{background:#2c5b9c;border-color:#1f3a5f;color:#fff;}
- .ds-chk.on:hover{background:#1f3a5f;}
+ .ap-chk:active,.ds-chk:active{transform:scale(.94);}
+ .ap-chk.on{background:#2e8b2e;border-color:#1f6a1f;color:#fff;box-shadow:0 1px 3px rgba(46,139,46,.35);}
+ .ap-chk.on::before{content:'✓ ';font-weight:800;}
+ .ap-chk.on:hover{background:#1f6a1f;border-color:#155215;color:#fff;}
+ .ds-chk.on{background:#1f3a5f;border-color:#142944;color:#fff;box-shadow:0 1px 3px rgba(31,58,95,.35);}
+ .ds-chk.on::before{content:'✓ ';font-weight:800;}
+ .ds-chk.on:hover{background:#0f1f33;border-color:#0a1626;color:#fff;}
  .ap-chk[disabled],.ds-chk[disabled]{opacity:.45;cursor:not-allowed;}
  .rationale-toggle{background:none;border:0;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:3px;color:#888;}
  .rationale-toggle:hover{background:#f0f4fb;color:#2c5b9c;}
@@ -1167,18 +1170,31 @@ async function toggleApproval(key, group, erp, role){
   const ap = data.approvals || {};
   const cur = ap[role];
   const wasOn = !!(cur && cur.by);
+  // 낙관적 UI 즉시 토글 (Firestore 응답 기다리지 않고 색 변화)
+  document.querySelectorAll('.ap-chk[data-key="'+cssEscape(key)+'"][data-role="'+role+'"]').forEach(btn=>{
+    btn.classList.toggle('on', !wasOn);
+  });
   const next = wasOn ? null : { by: editor, at: new Date().toISOString() };
   const payload = { group, erp, updatedAt: serverTimestamp(), updatedBy: editor };
   payload['approvals.'+role] = next ? next : deleteField();
-  await setDoc(ref, payload, {merge:true});
-  await addDoc(collection(db,'erp_term_logs'), {
-    key, group, erp, field:'(승인-'+role+')',
-    before: wasOn ? (cur.by||'') : '',
-    after: wasOn ? '' : editor,
-    action: wasOn ? 'unapprove' : 'approve',
-    role, editor, ts: serverTimestamp()
-  });
-  tick((wasOn?'☐ 승인해제':'✅ 승인')+' ['+role+']: '+erp+' ('+editor+')');
+  try{
+    await setDoc(ref, payload, {merge:true});
+    await addDoc(collection(db,'erp_term_logs'), {
+      key, group, erp, field:'(승인-'+role+')',
+      before: wasOn ? (cur.by||'') : '',
+      after: wasOn ? '' : editor,
+      action: wasOn ? 'unapprove' : 'approve',
+      role, editor, ts: serverTimestamp()
+    });
+    tick((wasOn?'☐ 승인해제':'✅ 승인')+' ['+role+']: '+erp+' ('+editor+')');
+  }catch(e){
+    // 실패 시 롤백
+    document.querySelectorAll('.ap-chk[data-key="'+cssEscape(key)+'"][data-role="'+role+'"]').forEach(btn=>{
+      btn.classList.toggle('on', wasOn);
+    });
+    tick('⚠️ 승인 저장실패: '+(e.code||e.message));
+    console.error(e);
+  }
 }
 
 async function toggleDownstream(key, group, erp, target){
@@ -1187,22 +1203,33 @@ async function toggleDownstream(key, group, erp, target){
   const ref = doc(db, COL, key);
   const snap = await getDoc(ref);
   const data = snap.exists() ? snap.data() : {};
-  // [2026-06-04] 승인 완료 가드 제거 — 자유롭게 체크 가능
   const ds = data.downstream || {};
   const cur = ds[target];
   const wasOn = !!(cur && cur.by);
+  // 낙관적 UI 즉시 토글
+  document.querySelectorAll('.ds-chk[data-key="'+cssEscape(key)+'"][data-target="'+target+'"]').forEach(btn=>{
+    btn.classList.toggle('on', !wasOn);
+  });
   const next = wasOn ? null : { by: editor, at: new Date().toISOString() };
   const payload = { group, erp, updatedAt: serverTimestamp(), updatedBy: editor };
   payload['downstream.'+target] = next ? next : deleteField();
-  await setDoc(ref, payload, {merge:true});
-  await addDoc(collection(db,'erp_term_logs'), {
-    key, group, erp, field:'(반영-'+target+')',
-    before: wasOn ? (cur.by||'') : '',
-    after: wasOn ? '' : editor,
-    action: wasOn ? 'undeploy' : 'deploy',
-    target, editor, ts: serverTimestamp()
-  });
-  tick((wasOn?'☐ 반영해제':'📍 반영')+' ['+target+']: '+erp);
+  try{
+    await setDoc(ref, payload, {merge:true});
+    await addDoc(collection(db,'erp_term_logs'), {
+      key, group, erp, field:'(반영-'+target+')',
+      before: wasOn ? (cur.by||'') : '',
+      after: wasOn ? '' : editor,
+      action: wasOn ? 'undeploy' : 'deploy',
+      target, editor, ts: serverTimestamp()
+    });
+    tick((wasOn?'☐ 반영해제':'📍 반영')+' ['+target+']: '+erp);
+  }catch(e){
+    document.querySelectorAll('.ds-chk[data-key="'+cssEscape(key)+'"][data-target="'+target+'"]').forEach(btn=>{
+      btn.classList.toggle('on', wasOn);
+    });
+    tick('⚠️ 반영 저장실패: '+(e.code||e.message));
+    console.error(e);
+  }
 }
 
 async function saveRationale(key, group, erp, text){
