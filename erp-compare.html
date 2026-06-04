@@ -124,14 +124,15 @@
  .del-row:hover{background:#c0392b;color:#fff;}
  .edit-row{margin-left:6px;background:#fff;border:1px solid #2c5b9c;color:#2c5b9c;cursor:pointer;font-size:11px;vertical-align:middle;padding:2px 9px;border-radius:4px;font-weight:600;font-family:inherit;line-height:1.4;}
  .edit-row:hover{background:#2c5b9c;color:#fff;}
- /* 공정 복사 — stage 그룹 행만 */
- .copy-row{margin-left:6px;background:#fff;border:1px solid #888;color:#666;cursor:pointer;font-size:11px;vertical-align:middle;padding:2px 9px;border-radius:4px;font-weight:600;font-family:inherit;line-height:1.4;}
- .copy-row:hover{background:#666;color:#fff;}
+ /* 공정 복사 — 평소엔 거의 안 보이고 행 호버 시에만 드러남 (운영자용 숨김 버튼) */
+ .copy-row{margin-left:5px;background:transparent;border:0;color:#cfd8e4;cursor:pointer;font-size:10px;vertical-align:middle;padding:0 3px;font-weight:600;font-family:inherit;line-height:1;opacity:.35;}
+ .copy-row:hover{color:#2c5b9c;opacity:1;background:#eef3fb;border-radius:3px;}
+ tr:hover > td > .copy-row{opacity:.7;}
  tr.copied-row td{background:#f7f5f0;}
- tr.copied-row td:first-child{font-style:italic;}
- .copy-tag{display:inline-block;margin-left:5px;font-size:10.5px;background:#888;color:#fff;border-radius:8px;padding:1px 7px;vertical-align:middle;font-weight:700;letter-spacing:.2px;}
- .uncopy-row{margin-left:6px;background:#fff;border:1px solid #888;color:#666;cursor:pointer;font-size:11px;vertical-align:middle;padding:2px 9px;border-radius:4px;font-weight:600;font-family:inherit;line-height:1.4;}
- .uncopy-row:hover{background:#888;color:#fff;}
+ tr.copied-row td:first-child{font-style:italic;color:#666;}
+ .copy-tag{display:inline-block;margin-left:4px;font-size:9.5px;background:#b8b8b8;color:#fff;border-radius:6px;padding:0 5px;vertical-align:middle;font-weight:600;letter-spacing:.2px;}
+ .uncopy-row{margin-left:3px;background:transparent;border:0;color:#bbb;cursor:pointer;font-size:10px;vertical-align:middle;padding:0 3px;font-weight:600;font-family:inherit;line-height:1;opacity:.5;}
+ .uncopy-row:hover{color:#c44;opacity:1;background:#fdecec;border-radius:3px;}
  .drag-handle{display:inline-block;color:#b8b8b8;cursor:grab;user-select:none;font-size:14px;padding:0 6px 0 0;vertical-align:middle;font-weight:700;letter-spacing:-2px;}
  .drag-handle:hover{color:#2c5b9c;}
  .drag-handle:active{cursor:grabbing;color:#1f3a5f;}
@@ -840,7 +841,7 @@ function buildTermRow(group, erp, mp, custom, subgroup){
   const handle = '<span class="drag-handle" title="드래그해서 순서 변경">⋮⋮</span>';
   const customBtns = custom ? ' <span class="cust-tag">신규 항목</span> <button type="button" class="edit-row" title="이 신규 항목 수정">✏ 수정</button> <button type="button" class="del-row" title="이 신규 항목 삭제">🗑 삭제</button>' : '';
   // stage(공정) 그룹에만 복사 버튼 — 후가공·포장 같이 여러 공정 흐름에서 같이 쓰는 행을 다른 소구분에 복사 (데이터는 자동 연동)
-  const copyBtn = (group === 'stage') ? ' <button type="button" class="copy-row" title="이 행을 다른 공정 흐름에 복사 — 값은 서로 자동 연동">↗ 복사</button>' : '';
+  const copyBtn = (group === 'stage') ? ' <button type="button" class="copy-row" title="이 행을 다른 공정 흐름에 복사 — 값은 서로 자동 연동">↗</button>' : '';
   tr.dataset.rowKey = key;
   tr.innerHTML =
     '<td>'+handle+' '+e(erp)+customBtns+copyBtn+'</td>'+
@@ -1424,7 +1425,7 @@ function buildCopiedRow(group, erp, mp, subgroup){
   tr.dataset.rowKey = key;
   tr.dataset.isCopy = '1';
   const handle = '<span class="drag-handle" title="드래그해서 순서 변경">⋮⋮</span>';
-  const tags = ' <span class="copy-tag">↗ 복사본</span> <button type="button" class="uncopy-row" title="이 위치에서 복사본만 제거 (원본·다른 위치는 유지)">✕ 복사 제거</button>';
+  const tags = ' <span class="copy-tag">↗</span> <button type="button" class="uncopy-row" title="이 위치에서 복사본만 제거 (원본·다른 위치는 유지)">✕</button>';
   tr.innerHTML =
     '<td>'+handle+' '+e(erp)+tags+'</td>'+
     '<td>'+e(mp||'')+'</td>'+
@@ -1550,7 +1551,7 @@ function injectCopyButtons(){
     btn.type = 'button';
     btn.className = 'copy-row';
     btn.title = '이 행을 다른 공정 흐름에 복사 — 값은 자동 연동';
-    btn.textContent = '↗ 복사';
+    btn.textContent = '↗';
     btn.addEventListener('click', ()=>copyTermToSubgroup('stage', erp, tr));
     firstTd.appendChild(document.createTextNode(' '));
     firstTd.appendChild(btn);
