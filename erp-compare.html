@@ -1108,7 +1108,7 @@ function buildRowActionsHtml(key){
   apHtml += '</span>';
   let dsHtml = '<span class="group-label">반영</span><span class="downstream">';
   DOWNSTREAM_TARGETS.forEach(t=>{
-    dsHtml += '<button type="button" class="ds-chk" data-target="'+t.key+'" data-key="'+e(key)+'" title="'+t.label+' (5명 승인 후 활성, 클릭=토글)" disabled>'+t.short+'</button>';
+    dsHtml += '<button type="button" class="ds-chk" data-target="'+t.key+'" data-key="'+e(key)+'" title="'+t.label+' (클릭=반영 / 다시 클릭=해제)">'+t.short+'</button>';
   });
   dsHtml += '</span>';
   const rationale = '<button type="button" class="rationale-toggle" data-key="'+e(key)+'" title="결정 사유 / 비고 (왜 이 안인가)">📝</button><span class="rationale-preview" data-rationale-preview-key="'+e(key)+'"></span>';
@@ -1187,12 +1187,7 @@ async function toggleDownstream(key, group, erp, target){
   const ref = doc(db, COL, key);
   const snap = await getDoc(ref);
   const data = snap.exists() ? snap.data() : {};
-  // 5명 승인 미완료면 차단
-  const apCnt = APPROVAL_ROLES.filter(r => data.approvals && data.approvals[r.key] && data.approvals[r.key].by).length;
-  if(apCnt < APPROVAL_ROLES.length){
-    alert('최종확정(5명 승인 완료) 후에 반영 체크 가능합니다. 현재 '+apCnt+'/'+APPROVAL_ROLES.length+' 승인.');
-    return;
-  }
+  // [2026-06-04] 승인 완료 가드 제거 — 자유롭게 체크 가능
   const ds = data.downstream || {};
   const cur = ds[target];
   const wasOn = !!(cur && cur.by);
@@ -1255,17 +1250,17 @@ function applyMetaActionsForDoc(key, data){
     }
   });
   const confirmed = apCnt === APPROVAL_ROLES.length;
-  // 다운스트림 — 5명 승인 완료여야 활성화
+  // 다운스트림 — 잠금 없이 자유롭게 체크 가능
   document.querySelectorAll('.ds-chk[data-key="'+cssEscape(key)+'"]').forEach(btn=>{
     const target = btn.dataset.target;
-    btn.disabled = !confirmed;
+    btn.disabled = false;
     const v = data.downstream && data.downstream[target];
     if(v && v.by){
       btn.classList.add('on');
-      btn.title = DOWNSTREAM_TARGETS.find(t=>t.key===target).label+' — '+v.by+' / '+fmtIso(v.at);
+      btn.title = DOWNSTREAM_TARGETS.find(t=>t.key===target).label+' — '+v.by+' / '+fmtIso(v.at)+' (클릭=해제)';
     } else {
       btn.classList.remove('on');
-      btn.title = DOWNSTREAM_TARGETS.find(t=>t.key===target).label+(confirmed?' (클릭=반영)':' — 5명 승인 후 활성');
+      btn.title = DOWNSTREAM_TARGETS.find(t=>t.key===target).label+' (클릭=반영)';
     }
   });
   // 행 상태 클래스
