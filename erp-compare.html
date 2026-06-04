@@ -1136,8 +1136,8 @@ const APPROVAL_ROLES = [];
 const DOWNSTREAM_TARGETS = [
   { key:'erp',       short:'ERP',    label:'ERP 반영 — 자재·공정·장비 드롭다운 명칭 변경 완료' },
   { key:'productdb', short:'상품DB', label:'상품DB(앵커데이터) 반영 — 챗봇·검색·상세페이지 데이터 갱신 완료' },
-  { key:'chatbot',   short:'챗봇',   label:'챗봇 노드 반영 — 동의어 사전·응답 노드 업데이트 완료' },
-  { key:'cs',        short:'CS답변', label:'CS 응대 표준어 반영 — CS회의록·답변 매뉴얼에 통일 용어 반영 완료' }
+  { key:'chatbot',   short:'챗봇',   label:'챗봇 노드 반영 — 동의어 사전·응답 노드 업데이트 완료' }
+  // [2026-06-04] CS답변 항목 제거 (사용자 요청). 기존 저장 데이터는 Firestore 에 남아있지만 UI 에 표시 안 됨.
 ];
 
 function buildRowActionsHtml(key){
