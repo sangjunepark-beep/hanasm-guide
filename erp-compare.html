@@ -889,6 +889,8 @@ async function deleteTerm(group, erp, tr){
     clearTimeout(timers[key+'::draft']);
     clearTimeout(timers[key+'::final']);
   }catch(_){}
+  // renderOrphanRows 에서 임시 차단 (deleteDoc 직후 snapshot fire 가 행을 다시 그리지 않게)
+  _pendingDeletes.add(key);
   try{
     const prevSnap = await getDoc(doc(db, COL, key));
     const beforeData = prevSnap.exists() ? prevSnap.data() : {};
@@ -907,6 +909,9 @@ async function deleteTerm(group, erp, tr){
     try{ await removeFromOrder(group, sub, erp); }catch(_){}
     tick('🗑️ 신규 항목 삭제: '+erp+(toRemove.length>2 ? ' (중복 '+(Math.floor(toRemove.length/2))+'행 같이 정리)' : ''));
   }catch(e){ tick('⚠️ 삭제실패: '+(e.code||e.message)); console.error(e); }
+  finally{
+    setTimeout(()=>_pendingDeletes.delete(key), 1500);
+  }
 }
 
 async function editTerm(group, erp, tr){
@@ -939,6 +944,8 @@ async function editTerm(group, erp, tr){
     clearTimeout(timers[oldKey+'::draft']);
     clearTimeout(timers[oldKey+'::final']);
   }catch(_){}
+  // renderOrphanRows 에서 oldKey 임시 차단 (race 방지)
+  if(renamed) _pendingDeletes.add(oldKey);
 
   // [2026-06-04] DOM 변경을 Firestore 작업보다 먼저 (낙관적) — setDoc 직후 fire 되는 onSnapshot 의 renderOrphanRows 가 같은 키 중복 행을 추가하는 race condition 막음
   const isCustom = tr.classList.contains('custom-row');
@@ -976,6 +983,10 @@ async function editTerm(group, erp, tr){
     await addDoc(collection(db,'erp_term_logs'), { key:oldKey, group, erp, subgroup:sub, field:'(행수정)', before:JSON.stringify({erp,mp:oldMp}), after:JSON.stringify({erp:newErp,mp:newMp}), action:'edit-term', editor:getEditor(), ts: serverTimestamp() });
     tick('✏ 신규 항목 수정: '+erp+(renamed?' → '+newErp:''));
   }catch(e){ tick('⚠️ 수정실패: '+(e.code||e.message)); console.error(e); }
+  finally{
+    // race 차단 해제는 충분한 시간 후 (snapshot 이 한 번 더 fire 되어 cache 가 정리되도록)
+    setTimeout(()=>_pendingDeletes.delete(oldKey), 1500);
+  }
 }
 
 /* ===== v3 (2026-06-04): 드래그앤드롭 행 순서 변경 + 신규 항목 수정 ===== */
@@ -1700,8 +1711,12 @@ async function reverseLog(log){
   await addDoc(collection(db,'erp_term_logs'), reverse);
 }
 
+// [2026-06-04] editTerm/deleteTerm 진행 중인 oldKey 를 임시 차단 — snapshot 이 await 사이에 fire 되어 사라질 doc 의 행을 다시 그리는 race 방지
+const _pendingDeletes = new Set();
+
 function renderOrphanRows(m){
   Object.keys(m).forEach(key=>{
+    if(_pendingDeletes.has(key)) return;
     const d = m[key];
     if(!d || !d.group || !GROUP_LABEL[d.group]) return;
     if(document.querySelector(keySel(key))) return;
