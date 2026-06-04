@@ -134,7 +134,7 @@
  /* P1: 승인 / 사유 / 다운스트림 반영 */
  .row-actions{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:6px;align-items:center;font-size:11px;max-width:100%;}
  .row-actions .group-label{color:#888;font-size:10px;margin-right:2px;}
- .approvals,.downstream{display:inline-flex;gap:3px;}
+ .approvals,.downstream{display:inline-flex;gap:3px;flex-wrap:wrap;max-width:100%;}
  .confirm-btn{display:inline-flex;align-items:center;justify-content:center;min-width:88px;height:26px;padding:0 12px;border:1.5px solid #c8d4e0;background:#fff;color:#666;border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:700;line-height:1;user-select:none;transition:background .12s,color .12s,border-color .12s,box-shadow .12s,transform .08s;}
  .confirm-btn:hover{background:#f0f8f0;border-color:#3a7a3a;color:#3a7a3a;}
  .confirm-btn:active{transform:scale(.96);}
@@ -211,7 +211,7 @@
 <h2>1. 사용장비 (Machine)</h2>
 <p class="lead">ERP 12종 vs 가이드 8장비 — 매핑 결과.</p>
 <div class="stat"><span class="ok">표준 매핑 OK 7</span><span class="warn">가이드 누락 3</span><span class="oos">비장비·사업장 2</span></div>
-<table><tr><th style="width:16%">ERP 명칭</th><th style="width:30%">가이드 표준명</th><th style="width:27%">1차 수정안</th><th>최종 협의안</th></tr>
+<table><tr><th style="width:13%">ERP 명칭</th><th style="width:22%">가이드 표준명</th><th style="width:18%">1차 수정안</th><th>최종 협의안</th></tr>
 <tr class="flowsep"><td colspan="4" style="background:#e7eef7;color:#1f3a5f;border-top:2px solid #2c5b9c;font-weight:700;font-size:12.5px;letter-spacing:.2px;padding:7px 10px;">공정 1 · UV인쇄 관련 장비</td></tr>
 <tr class="ok"><td>UV출력기</td><td>UV 평판</td><td class="cell"><input class="dec" data-key="machine::UV출력기" data-field="draft" data-group="machine" data-erp="UV출력기" data-mp="UV 평판" placeholder="1차 수정안"><div class="meta" data-meta-key="machine::UV출력기" data-meta-field="draft"></div></td><td class="cell"><input class="dec final" data-key="machine::UV출력기" data-field="final" data-group="machine" data-erp="UV출력기" data-mp="UV 평판" placeholder="최종 협의안"><div class="meta" data-meta-key="machine::UV출력기" data-meta-field="final"></div></td></tr>
 <tr class="flowsep"><td colspan="4" style="background:#e7eef7;color:#1f3a5f;border-top:2px solid #2c5b9c;font-weight:700;font-size:12.5px;letter-spacing:.2px;padding:7px 10px;">공정 2 · 솔벤 인쇄 관련 장비</td></tr>
@@ -257,7 +257,7 @@
  </div>
 </div>
 <div class="stat"><span class="ok">표준 매핑 OK 8</span><span class="warn">가이드 누락 8</span><span class="oos">비공정·사업장 2</span></div>
-<table><tr><th style="width:16%">ERP 명칭</th><th style="width:30%">가이드 표준명</th><th style="width:27%">1차 수정안</th><th>최종 협의안</th></tr>
+<table><tr><th style="width:13%">ERP 명칭</th><th style="width:22%">가이드 표준명</th><th style="width:18%">1차 수정안</th><th>최종 협의안</th></tr>
 <tr class="flowsep"><td colspan="4" style="background:#e7eef7;color:#1f3a5f;border-top:2px solid #2c5b9c;font-weight:700;font-size:12.5px;letter-spacing:.2px;padding:7px 10px;">공정 1 · UV인쇄 &nbsp;›&nbsp; 준드재단 &nbsp;›&nbsp; 후가공 &nbsp;›&nbsp; 포장</td></tr>
 <tr class="ok"><td>UV인쇄</td><td>UV평판 직인쇄</td><td class="cell"><input class="dec" data-key="stage::UV인쇄" data-field="draft" data-group="stage" data-erp="UV인쇄" data-mp="UV평판 직인쇄" placeholder="1차 수정안"><div class="meta" data-meta-key="stage::UV인쇄" data-meta-field="draft"></div></td><td class="cell"><input class="dec final" data-key="stage::UV인쇄" data-field="final" data-group="stage" data-erp="UV인쇄" data-mp="UV평판 직인쇄" placeholder="최종 협의안"><div class="meta" data-meta-key="stage::UV인쇄" data-meta-field="final"></div></td></tr>
 <tr class="ok"><td>준드재단</td><td>ZUND 라우터·V컷</td><td class="cell"><input class="dec" data-key="stage::준드재단" data-field="draft" data-group="stage" data-erp="준드재단" data-mp="ZUND 라우터·V컷" placeholder="1차 수정안"><div class="meta" data-meta-key="stage::준드재단" data-meta-field="draft"></div></td><td class="cell"><input class="dec final" data-key="stage::준드재단" data-field="final" data-group="stage" data-erp="준드재단" data-mp="ZUND 라우터·V컷" placeholder="최종 협의안"><div class="meta" data-meta-key="stage::준드재단" data-meta-field="final"></div></td></tr>
@@ -311,7 +311,7 @@
 <h2>3. 재질 (Material)</h2>
 <p class="lead">ERP 재질 마스터 64종 vs 가이드 자재 종합표 — 핵심 매핑.</p>
 <div class="stat"><span class="ok">표준 매핑 OK 36</span><span class="warn">가이드 누락 10</span><span class="oos">범위 외(금속·부자재) 18</span></div>
-<table><tr><th style="width:16%">ERP 명칭</th><th style="width:30%">가이드 표준명 / 비고</th><th style="width:27%">1차 수정안</th><th>최종 협의안</th></tr>
+<table><tr><th style="width:13%">ERP 명칭</th><th style="width:22%">가이드 표준명 / 비고</th><th style="width:18%">1차 수정안</th><th>최종 협의안</th></tr>
 <tr class="flowsep"><td colspan="4" style="background:#eef3e9;color:#2f5d2f;font-weight:700;font-size:12.5px;letter-spacing:.2px;border-top:2px solid #5a8f3c;padding:7px 10px;">포맥스(폼보드) 계열 (6)</td></tr>
 <tr class="ok"><td>포맥스1T</td><td>포맥스(두께 1T)</td><td class="cell"><input class="dec" data-key="material::포맥스1T" data-field="draft" data-group="material" data-erp="포맥스1T" data-mp="포맥스(두께 1T)" placeholder="1차 수정안"><div class="meta" data-meta-key="material::포맥스1T" data-meta-field="draft"></div></td><td class="cell"><input class="dec final" data-key="material::포맥스1T" data-field="final" data-group="material" data-erp="포맥스1T" data-mp="포맥스(두께 1T)" placeholder="최종 협의안"><div class="meta" data-meta-key="material::포맥스1T" data-meta-field="final"></div></td></tr>
 <tr class="ok"><td>포맥스2T</td><td>포맥스(두께 2T)</td><td class="cell"><input class="dec" data-key="material::포맥스2T" data-field="draft" data-group="material" data-erp="포맥스2T" data-mp="포맥스(두께 2T)" placeholder="1차 수정안"><div class="meta" data-meta-key="material::포맥스2T" data-meta-field="draft"></div></td><td class="cell"><input class="dec final" data-key="material::포맥스2T" data-field="final" data-group="material" data-erp="포맥스2T" data-mp="포맥스(두께 2T)" placeholder="최종 협의안"><div class="meta" data-meta-key="material::포맥스2T" data-meta-field="final"></div></td></tr>
@@ -410,7 +410,7 @@
 </div>
 
 <h2>5. 주요 불일치 (용어 통일 필요) <span style="font-size:13px;color:#888;font-weight:400;">· 2026-06-03 검증 항목 추가</span></h2>
-<table><tr><th style="width:18%">분류</th><th style="width:30%">ERP 표기</th><th style="width:30%">가이드 표기</th><th>제안</th></tr>
+<table><tr><th style="width:18%">분류</th><th style="width:22%">ERP 표기</th><th style="width:22%">가이드 표기</th><th>제안</th></tr>
 <tr><td>장비</td><td>준드</td><td>ZUND(평판컷팅기)</td><td>표준명 "ZUND" 채택. <b>ERP 코드값(준드)은 rename 금지</b> — 표시 별칭으로 ZUND 등록(주문·이력 보존). 공정 "준드재단"도 함께 매핑.</td></tr>
 <tr><td>장비</td><td>UV출력기</td><td>UV 평판</td><td>"UV 평판"으로 통일(인쇄 방식 명시)</td></tr>
 <tr><td>공정</td><td>UV인쇄 / 솔벤인쇄 / 수성출력 / 라텍스출력</td><td>UV평판 / 솔벤트 / 수성 / 라텍스</td><td>⚠️ "인쇄로 통일"은 과단순화 — 장비명(UV출력기·수성출력)과 공정명(UV인쇄·수성출력)은 레이어가 다름. <b>공정명 동사만 "인쇄"로 통일하고 장비명은 보존</b>(레이어 분리).</td></tr>
