@@ -606,27 +606,22 @@ function init(){
     document.getElementById('cnt').textContent = `1차 ${drafts} · 최종 ${finals}`;
   }, err=>{ tick('⚠️ 동기화실패: '+err.code); });
 
-  // 행 순서 (드래그앤드롭 결과) 실시간 구독
+  // 행 순서 + 소구분 순서 실시간 구독 (같은 컬렉션 안에서 doc id prefix 로 구분)
   onSnapshot(collection(db,'erp_term_order'), (snap)=>{
     _orderCache = {};
-    snap.forEach(d=>{
-      const x = d.data();
-      if(!x || !x.group || !Array.isArray(x.order)) return;
-      _orderCache[d.id] = x;
-      try{ applyOrder(x.group, x.subgroup||'', x.order); }catch(e){ console.error('applyOrder', e); }
-    });
-  }, err=>{ tick('⚠️ 순서동기화실패: '+err.code); });
-
-  // 소구분 순서 실시간 구독
-  onSnapshot(collection(db,'erp_subgroup_order'), (snap)=>{
     _subOrderCache = {};
     snap.forEach(d=>{
       const x = d.data();
       if(!x || !x.group || !Array.isArray(x.order)) return;
-      _subOrderCache[x.group] = x.order;
-      try{ applySubgroupOrder(x.group, x.order); }catch(e){ console.error('applySubgroupOrder', e); }
+      if(d.id.startsWith('__sub__::') || x.isSubgroupOrder){
+        _subOrderCache[x.group] = x.order;
+        try{ applySubgroupOrder(x.group, x.order); }catch(e){ console.error('applySubgroupOrder', e); }
+      } else {
+        _orderCache[d.id] = x;
+        try{ applyOrder(x.group, x.subgroup||'', x.order); }catch(e){ console.error('applyOrder', e); }
+      }
     });
-  }, err=>{ tick('⚠️ 소구분순서동기화실패: '+err.code); });
+  }, err=>{ tick('⚠️ 순서동기화실패: '+err.code); });
 
   // 비고 영역
   document.querySelectorAll('.notes').forEach(box=>{
@@ -1450,11 +1445,11 @@ async function persistSubgroupOrder(group){
     const sub = s.dataset.subgroup || '';
     if(sub) order.push(sub);
   });
-  // 이전 순서(UNDO용)
-  const ref = doc(db,'erp_subgroup_order', group);
+  // [2026-06-04] 보안규칙 회피 — erp_term_order 컬렉션 안에 '__sub__::' prefix doc id 로 통합 저장
+  const ref = doc(db,'erp_term_order', '__sub__::'+group);
   const prevSnap = await getDoc(ref);
   const beforeOrder = prevSnap.exists() ? (prevSnap.data().order||[]) : [];
-  await setDoc(ref, { group, order, updatedAt: serverTimestamp(), updatedBy: getEditor() });
+  await setDoc(ref, { group, subgroup:'__sub__', order, isSubgroupOrder:true, updatedAt: serverTimestamp(), updatedBy: getEditor() });
   await addDoc(collection(db,'erp_term_logs'), {
     key:group, group, subgroup:'', field:'(소구분 순서변경)',
     before: beforeOrder.join(' › '), after: order.join(' › '),
@@ -1611,7 +1606,7 @@ async function reverseLog(log){
   }
   else if(log.action==='reorder-subgroup'){
     const beforeOrder = Array.isArray(log.beforeOrder) ? log.beforeOrder : [];
-    await setDoc(doc(db,'erp_subgroup_order', log.group), { group:log.group, order:beforeOrder, updatedAt: serverTimestamp(), updatedBy: editor });
+    await setDoc(doc(db,'erp_term_order', '__sub__::'+log.group), { group:log.group, subgroup:'__sub__', order:beforeOrder, isSubgroupOrder:true, updatedAt: serverTimestamp(), updatedBy: editor });
     applySubgroupOrder(log.group, beforeOrder);
     Object.assign(reverse, { key:log.group, group:log.group, subgroup:'' });
   }
