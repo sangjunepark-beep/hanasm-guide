@@ -2023,7 +2023,7 @@ function validateTermName(s){
     var c = s.charCodeAt(i);
     if(c < 32 || c === 127){ alert('이름에 줄바꿈·탭·제어문자는 쓸 수 없습니다.'); return false; }
   }
-  if(s.indexOf('/') >= 0 || s.indexOf('') >= 0){ alert('이름에 "/" "\" 는 쓸 수 없습니다.'); return false; }
+  if(s.indexOf('/') >= 0 || s.indexOf('\\') >= 0){ alert('이름에 "/" "\\" 는 쓸 수 없습니다.'); return false; }
   if(s.length >= 2 && s.charAt(0) === '_' && s.charAt(1) === '_'){ alert('이름은 "__" 로 시작할 수 없습니다 (시스템 예약).'); return false; }
   if(s === '.' || s === '..'){ alert('"." 또는 ".." 는 쓸 수 없습니다.'); return false; }
   return true;
