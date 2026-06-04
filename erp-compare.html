@@ -778,7 +778,7 @@ async function promptAddTerm(group, subgroup){
   erp = erp.trim(); if(!erp) return;
   if(erp.indexOf('/')>=0){ alert('명칭에 "/" 는 쓸 수 없습니다.'); return; }
   const key = group+'::'+erp;
-  if(document.querySelector(keySel(key))){ alert('이미 있는 항목: '+erp); return; }
+  // [2026-06-04] 중복 차단 제거: ERP·신규 모두 동명 허용 (같은 키는 같은 Firestore 문서 공유 — '후가공'처럼 값 연동)
   let mp = (prompt('가이드 표준명 (선택, 없으면 비워두기):','')||'').trim();
   const table = document.querySelector('table[data-group="'+group+'"]');
   if(!table) return;
@@ -822,7 +822,10 @@ async function editTerm(group, erp, tr){
   newMp = newMp.trim();
   const renamed = (newErp !== erp);
   const newKey = group+'::'+newErp;
-  if(renamed && document.querySelector(keySel(newKey))){ alert('이미 있는 항목명: '+newErp); return; }
+  // [2026-06-04] 중복 차단 제거: 같은 이름으로 바꿔도 진행 (같은 Firestore 문서를 공유 — 값 연동될 수 있음)
+  if(renamed && document.querySelector(keySel(newKey))){
+    if(!confirm('"'+newErp+'" 라는 이름의 항목이 이미 있습니다.\n\n진행하면 같은 데이터 문서를 공유하게 되어, 1차/최종 협의안 값이 서로 연동됩니다.\n그래도 진행할까요?')) return;
+  }
   try{
     if(renamed){
       // 기존 문서 읽어서 새 키로 복사 후 기존 삭제
