@@ -542,7 +542,7 @@ function saveCell(key, field, group, erp, value){
       });
       tick('☁️ 저장됨 ('+editor+')');
     }catch(e){ tick('⚠️ 저장실패: '+e.code); console.error(e); }
-  }, 350);
+  }, 700);
 }
 
 function fmtDate(ts){
@@ -603,7 +603,14 @@ function init(){
 
   // 입력 핸들러
   document.querySelectorAll('input.dec').forEach(i=>{
+    // [2026-06-05] 한글 IME 보호: 입력기 조합 중에는 저장 트리거 안 함 — 자동저장 후 snapshot 도착이 IME 깨뜨려 커서 풀리는 사고 방지
+    i.addEventListener('compositionstart', ()=>{ i.dataset.composing='1'; });
+    i.addEventListener('compositionend', ()=>{
+      delete i.dataset.composing;
+      saveCell(i.dataset.key, i.dataset.field, i.dataset.group, i.dataset.erp, i.value);
+    });
     i.addEventListener('input', ()=>{
+      if(i.dataset.composing==='1') return;
       saveCell(i.dataset.key, i.dataset.field, i.dataset.group, i.dataset.erp, i.value);
     });
   });
@@ -648,7 +655,7 @@ function init(){
       const k = i.dataset.key, f = i.dataset.field;
       const docData = m[k];
       const val = docData?.[f] || '';
-      if(document.activeElement!==i) i.value = val;
+      if(document.activeElement!==i && i.value !== val) i.value = val;
       if(val){
         i.dataset.saved='1';
         const ck = k+'::'+f;                 // 흐름 복제로 같은 키가 여러 칸 → 고유 키만 카운트
@@ -957,7 +964,16 @@ function insertCustomRow(table, subgroup, tr){
 
 function wireInput(inp){
   inp.addEventListener('focus', ()=>{ if(!getEditor()){ inp.blur(); openEditorModal(inp); } });
-  inp.addEventListener('input', ()=>{ saveCell(inp.dataset.key, inp.dataset.field, inp.dataset.group, inp.dataset.erp, inp.value); });
+  // [2026-06-05] 한글 IME 보호 (compositionstart/end)
+  inp.addEventListener('compositionstart', ()=>{ inp.dataset.composing='1'; });
+  inp.addEventListener('compositionend', ()=>{
+    delete inp.dataset.composing;
+    saveCell(inp.dataset.key, inp.dataset.field, inp.dataset.group, inp.dataset.erp, inp.value);
+  });
+  inp.addEventListener('input', ()=>{
+    if(inp.dataset.composing==='1') return;
+    saveCell(inp.dataset.key, inp.dataset.field, inp.dataset.group, inp.dataset.erp, inp.value);
+  });
 }
 function keySel(key){ return 'input.dec[data-key="'+String(key).replace(/"/g,'\\"')+'"]'; }
 
