@@ -1170,8 +1170,8 @@ async function toggleApproval(key, group, erp, role){
   const ap = data.approvals || {};
   const cur = ap[role];
   const wasOn = !!(cur && cur.by);
-  // 낙관적 UI 즉시 토글 (Firestore 응답 기다리지 않고 색 변화)
-  document.querySelectorAll('.ap-chk[data-key="'+cssEscape(key)+'"][data-role="'+role+'"]').forEach(btn=>{
+  // 낙관적 UI 즉시 토글 (Firestore 응답 기다리지 않고 색 변화) — dataset 비교로 안전하게
+  forEachByTwoData('.ap-chk', 'key', key, 'role', role, btn=>{
     btn.classList.toggle('on', !wasOn);
   });
   const next = wasOn ? null : { by: editor, at: new Date().toISOString() };
@@ -1189,7 +1189,7 @@ async function toggleApproval(key, group, erp, role){
     tick((wasOn?'☐ 승인해제':'✅ 승인')+' ['+role+']: '+erp+' ('+editor+')');
   }catch(e){
     // 실패 시 롤백
-    document.querySelectorAll('.ap-chk[data-key="'+cssEscape(key)+'"][data-role="'+role+'"]').forEach(btn=>{
+    forEachByTwoData('.ap-chk', 'key', key, 'role', role, btn=>{
       btn.classList.toggle('on', wasOn);
     });
     tick('⚠️ 승인 저장실패: '+(e.code||e.message));
@@ -1207,7 +1207,7 @@ async function toggleDownstream(key, group, erp, target){
   const cur = ds[target];
   const wasOn = !!(cur && cur.by);
   // 낙관적 UI 즉시 토글
-  document.querySelectorAll('.ds-chk[data-key="'+cssEscape(key)+'"][data-target="'+target+'"]').forEach(btn=>{
+  forEachByTwoData('.ds-chk', 'key', key, 'target', target, btn=>{
     btn.classList.toggle('on', !wasOn);
   });
   const next = wasOn ? null : { by: editor, at: new Date().toISOString() };
@@ -1224,7 +1224,7 @@ async function toggleDownstream(key, group, erp, target){
     });
     tick((wasOn?'☐ 반영해제':'📍 반영')+' ['+target+']: '+erp);
   }catch(e){
-    document.querySelectorAll('.ds-chk[data-key="'+cssEscape(key)+'"][data-target="'+target+'"]').forEach(btn=>{
+    forEachByTwoData('.ds-chk', 'key', key, 'target', target, btn=>{
       btn.classList.toggle('on', wasOn);
     });
     tick('⚠️ 반영 저장실패: '+(e.code||e.message));
@@ -1265,7 +1265,7 @@ async function saveRationale(key, group, erp, text){
 function applyMetaActionsForDoc(key, data){
   // 승인
   const apCnt = APPROVAL_ROLES.filter(r => data.approvals && data.approvals[r.key] && data.approvals[r.key].by).length;
-  document.querySelectorAll('.ap-chk[data-key="'+cssEscape(key)+'"]').forEach(btn=>{
+  forEachByData('.ap-chk', 'key', key, btn=>{
     const role = btn.dataset.role;
     const v = data.approvals && data.approvals[role];
     if(v && v.by){
@@ -1278,7 +1278,7 @@ function applyMetaActionsForDoc(key, data){
   });
   const confirmed = apCnt === APPROVAL_ROLES.length;
   // 다운스트림 — 잠금 없이 자유롭게 체크 가능
-  document.querySelectorAll('.ds-chk[data-key="'+cssEscape(key)+'"]').forEach(btn=>{
+  forEachByData('.ds-chk', 'key', key, btn=>{
     const target = btn.dataset.target;
     btn.disabled = false;
     const v = data.downstream && data.downstream[target];
@@ -1292,7 +1292,7 @@ function applyMetaActionsForDoc(key, data){
   });
   // 행 상태 클래스
   const dsCnt = DOWNSTREAM_TARGETS.filter(t => data.downstream && data.downstream[t.key] && data.downstream[t.key].by).length;
-  document.querySelectorAll('tr[data-row-key="'+cssEscape(key)+'"]').forEach(tr=>{
+  forEachByData('tr', 'rowKey', key, tr=>{
     tr.classList.toggle('confirmed', confirmed);
     tr.classList.toggle('deployed', confirmed && dsCnt === DOWNSTREAM_TARGETS.length);
   });
@@ -1300,14 +1300,14 @@ function applyMetaActionsForDoc(key, data){
   const rText = data.rationale || '';
   const rBy = data.rationale_by || '';
   const rAt = data.rationale_at;
-  document.querySelectorAll('.rationale-toggle[data-key="'+cssEscape(key)+'"]').forEach(btn=>{
+  forEachByData('.rationale-toggle', 'key', key, btn=>{
     btn.classList.toggle('has-text', !!rText);
     btn.textContent = rText ? '📝•' : '📝';
   });
-  document.querySelectorAll('.rationale-preview[data-rationale-preview-key="'+cssEscape(key)+'"]').forEach(span=>{
+  forEachByData('.rationale-preview', 'rationalePreviewKey', key, span=>{
     span.textContent = rText ? '"'+rText.slice(0,50)+(rText.length>50?'…':'')+'"' : '';
   });
-  document.querySelectorAll('.rationale-box[data-rationale-box-key="'+cssEscape(key)+'"]').forEach(box=>{
+  forEachByData('.rationale-box', 'rationaleBoxKey', key, box=>{
     const ta = box.querySelector('textarea');
     if(ta && document.activeElement!==ta) ta.value = rText;
     const meta = box.querySelector('.rationale-meta');
@@ -1315,7 +1315,18 @@ function applyMetaActionsForDoc(key, data){
   });
 }
 
-function cssEscape(s){ return String(s).replace(/"/g,'\\"').replace(/\\/g,'\\\\'); }
+function cssEscape(s){ return String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"'); }
+// 안전한 dataset 비교 (selector escape 문제 회피)
+function forEachByData(selector, dataKey, dataVal, fn){
+  document.querySelectorAll(selector).forEach(el=>{
+    if(el.dataset[dataKey] === dataVal) fn(el);
+  });
+}
+function forEachByTwoData(selector, k1, v1, k2, v2, fn){
+  document.querySelectorAll(selector).forEach(el=>{
+    if(el.dataset[k1] === v1 && el.dataset[k2] === v2) fn(el);
+  });
+}
 function fmtIso(iso){
   if(!iso) return '';
   try{ const d = new Date(iso); return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
