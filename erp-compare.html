@@ -526,7 +526,7 @@ function saveCell(key, field, group, erp, value){
       });
       tick('☁️ 저장됨 ('+editor+')');
     }catch(e){ tick('⚠️ 저장실패: '+e.code); console.error(e); }
-  }, 700);
+  }, 2000);
 }
 
 function fmtDate(ts){
