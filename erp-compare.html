@@ -2131,6 +2131,47 @@ window.exportCSV = async function(){
 // [2026-06-03 보안] 전역 clearAll(전체 삭제) 함수 제거 — 콘솔에서 누구나 전체 삭제 가능했던 위험 제거.
 // 근본 차단은 Firestore 보안규칙(Firebase 콘솔)에서 수행할 것.
 
+// [2026-06-05] 복원: 어제 자동 마이그가 누락한 옛 stage::erp doc 값을 첫 등장 정적 행의 새 키로 복사. 옛 doc 은 보존(삭제 X).
+window.restoreLostStage = async function(erpList){
+  const targets = (erpList && erpList.length) ? erpList : ['외주발주','재고포장','준드재단','포장'];
+  const snap = await getDocs(collection(db, COL));
+  const oldByErp = {};
+  snap.forEach(d=>{
+    const id = d.id;
+    if(id.startsWith('stage::') && id.split('::').length === 2){
+      const x = d.data() || {};
+      oldByErp[x.erp || id.slice(7)] = x;
+    }
+  });
+  const results = [];
+  for(const erp of targets){
+    const old = oldByErp[erp];
+    if(!old){ results.push({erp, status:'no-old-doc'}); continue; }
+    const firstInp = document.querySelector('input.dec[data-group="stage"][data-erp="'+erp+'"][data-field="draft"]');
+    if(!firstInp){ results.push({erp, status:'no-static-row'}); continue; }
+    const newKey = firstInp.dataset.key;
+    if(newKey.split('::').length !== 3){ results.push({erp, status:'key-not-new-format', key:newKey}); continue; }
+    const tr = firstInp.closest('tr');
+    const subgroup = tr?.dataset?.subgroup || '';
+    const payload = {
+      group:'stage', erp, subgroup,
+      mp: old.mp || '',
+      updatedAt: serverTimestamp(),
+      updatedBy: '복원-자동(누락마이그)',
+      restored_from: 'stage::'+erp,
+      restored_at: serverTimestamp()
+    };
+    if(old.draft){ payload.draft = old.draft; payload.draft_by = old.draft_by || '송기용 팀장'; if(old.draft_at) payload.draft_at = old.draft_at; }
+    if(old.final){ payload.final = old.final; payload.final_by = old.final_by || '송기용 팀장'; if(old.final_at) payload.final_at = old.final_at; }
+    try{
+      await setDoc(doc(db, COL, newKey), payload, {merge:true});
+      results.push({erp, status:'OK', newKey, draft: payload.draft||'', final: payload.final||''});
+    }catch(e){ results.push({erp, status:'ERR', message:e.message||e.code}); }
+  }
+  console.table(results);
+  return results;
+};
+
 // [2026-06-05] 디버그: 편집자 작업 내역 조회 (콘솔에서 findEditorData('송기용') 호출)
 window.findEditorData = async function(editorName){
   const name = editorName || '송기용';
