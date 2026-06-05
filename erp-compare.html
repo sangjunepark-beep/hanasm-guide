@@ -44,6 +44,7 @@
  .missing-table tr[data-miss]:hover td{filter:brightness(0.98);}
  .missing-table tr[data-miss] td:nth-child(2){font-weight:600;color:#1f3a5f;}
  .missing-table .miss-add-btn:hover:not([disabled]){background:#1f3a5f !important;}
+ .missing-table .miss-del-btn:hover{background:#fdecec !important;border-color:#c44 !important;}
  .missing-table .miss-name-input:focus{outline:none;box-shadow:0 0 0 2px rgba(44,91,156,.15);}
  input.dec{width:100%;box-sizing:border-box;border:1px solid #c8d4e0;border-radius:3px;padding:6px 9px;font-size:13.5px;font-family:inherit;background:#fffef5;height:32px;}
  input.dec:focus{outline:none;border-color:#2c5b9c;background:#fff;box-shadow:0 0 0 2px rgba(44,91,156,.12);}
@@ -2262,22 +2263,43 @@ function initMissingTable(){
       clearTimeout(debTimers['n_'+name]);
       debTimers['n_'+name] = setTimeout(flushName, 2000);
     });
-    // 버튼 컨테이너 (ERP명칭 규칙에 추가 만)
+    // 버튼 컨테이너 (ERP명칭 규칙에 추가 + 삭제)
     const wrap = document.createElement('div');
     wrap.className = 'miss-btns';
-    wrap.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;justify-content:center;';
+    wrap.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;justify-content:center;align-items:center;';
     const addBtn = document.createElement('button');
     addBtn.type = 'button';
     addBtn.className = 'miss-add-btn';
     addBtn.textContent = '→ ERP명칭 규칙에 추가';
     addBtn.title = '재질 표의 분류를 선택해서 신규 항목으로 추가';
     addBtn.style.cssText = 'padding:5px 12px;background:#2c5b9c;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11.5px;font-family:inherit;font-weight:600;white-space:nowrap;';
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'miss-del-btn';
+    delBtn.textContent = '🗑 삭제';
+    delBtn.title = '이 항목 표 4 에서 숨김 (모든 사용자에게 즉시 반영, 콘솔에서 복원 가능)';
+    delBtn.style.cssText = 'padding:5px 10px;background:#fff;color:#c44;border:1px solid #d88080;border-radius:4px;cursor:pointer;font-size:11.5px;font-family:inherit;font-weight:600;white-space:nowrap;';
     const statusTag = document.createElement('div');
     statusTag.className = 'miss-status-tag';
     statusTag.style.cssText = 'width:100%;text-align:center;font-size:11.5px;margin-top:2px;';
     wrap.appendChild(addBtn);
+    wrap.appendChild(delBtn);
     wrap.appendChild(statusTag);
     lastCell.appendChild(wrap);
+    // 삭제(숨김)
+    delBtn.addEventListener('click', async ()=>{
+      if(!getEditor()){ openEditorModal(); return; }
+      const currentName = nameInp.value.trim() || orig;
+      if(!confirm('"'+currentName+'" 항목을 표 4 에서 숨길까요?\n\n· 모든 사용자에게 즉시 반영됩니다\n· 데이터는 Firestore 에 보존됩니다 (콘솔에서 복원 가능)\n· 이미 ERP 재질 표에 추가한 행은 영향 없습니다')) return;
+      try{
+        await setDoc(doc(db, COL_M, name), {
+          name, status:'deleted',
+          deleted_by: getEditor(), deleted_at: serverTimestamp(),
+          updatedAt: serverTimestamp(), updatedBy: getEditor()
+        }, {merge:true});
+        tick('🗑 삭제: '+currentName);
+      }catch(e){ tick('⚠️ 삭제실패: '+(e.code||e.message)); console.error(e); }
+    });
     // ERP명칭 규칙에 추가
     addBtn.addEventListener('click', async ()=>{
       if(!getEditor()){ openEditorModal(); return; }
@@ -2343,16 +2365,24 @@ function initMissingTable(){
 function applyMissingRowStyle(tr, d){
   const tag = tr.querySelector('.miss-status-tag');
   const addBtn = tr.querySelector('.miss-add-btn');
+  const delBtn = tr.querySelector('.miss-del-btn');
   tr.dataset.status = d?.status || '';
+  if(d?.status === 'deleted'){
+    tr.style.display = 'none';
+    return;
+  }
+  tr.style.display = '';
   if(d?.status === 'added'){
     tr.style.background = '#f0f7ff';
     if(addBtn){ addBtn.style.background = '#888'; addBtn.textContent = '✓ 규칙에 등재됨'; addBtn.disabled = true; }
+    if(delBtn){ delBtn.style.display = ''; }
     if(tag){ tag.innerHTML = '<span style="color:#2c5b9c;font-weight:600;">→ 재질·'+(d.target_subgroup||'')+'</span><br><span style="color:#666;font-size:10.5px;">'+(d.addedName||'')+' / '+(d.added_by||'')+'</span>'; }
   } else {
     // pending
     tr.style.background = '';
     tr.style.opacity = '';
     if(addBtn){ addBtn.style.background = '#2c5b9c'; addBtn.textContent = '→ ERP명칭 규칙에 추가'; addBtn.disabled = false; }
+    if(delBtn){ delBtn.style.display = ''; }
     if(tag){ tag.innerHTML = ''; }
   }
 }
@@ -2457,6 +2487,25 @@ function applyOsRowStyle(tr, checked, by, memoBy){
     } else { tag.textContent = '✓ '+by; }
   } else if(tag){ tag.remove(); }
 }
+
+// [2026-06-05] 표 4 삭제 행 복원: 콘솔에서 restoreMissingRow('압출판') 또는 restoreMissingRow() 로 전체 복원
+window.restoreMissingRow = async function(name){
+  const COL_M = 'erp_missing_status';
+  if(name){
+    await setDoc(doc(db, COL_M, name), { name, status: deleteField(), deleted_by: deleteField(), deleted_at: deleteField(), updatedAt: serverTimestamp(), updatedBy: '복원-콘솔' }, {merge:true});
+    return 'restored: '+name;
+  }
+  const snap = await getDocs(collection(db, COL_M));
+  let n = 0;
+  for(const d of snap.docs){
+    const x = d.data();
+    if(x.status === 'deleted'){
+      await setDoc(doc(db, COL_M, d.id), { status: deleteField(), deleted_by: deleteField(), deleted_at: deleteField(), updatedAt: serverTimestamp(), updatedBy: '복원-콘솔' }, {merge:true});
+      n++;
+    }
+  }
+  return 'restored '+n+' rows';
+};
 
 // [2026-06-05] 복원: 어제 자동 마이그가 누락한 옛 stage::erp doc 값을 첫 등장 정적 행의 새 키로 복사. 옛 doc 은 보존(삭제 X).
 window.restoreLostStage = async function(erpList){
