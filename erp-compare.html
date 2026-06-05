@@ -1644,6 +1644,15 @@ function renderCopies(key, data){
   if(!data || !Array.isArray(data.copies)) return;
   const group = data.group, erp = data.erp || String(key).split('::')[1] || '', mp = data.mp || '';
   if(!group || !GROUP_LABEL[group]) return;
+  // [2026-06-05] stage 그룹의 copy-row 시스템 비활성화 — 정적 행별 독립 키 체계와 충돌해서 같은 신규 항목이 표 아래 여러 번 표시되는 사고. 옛 copies 배열 데이터는 Firestore 에 보존 (지우지 않음), DOM 표시만 중단.
+  if(group === 'stage'){
+    document.querySelectorAll('tr.copied-row[data-row-key="'+key.replace(/"/g,'\\"')+'"]').forEach(t=>{
+      const ar = t.nextElementSibling;
+      if(ar && ar.classList && ar.classList.contains('actions-row')) ar.parentNode.removeChild(ar);
+      if(t.parentNode) t.parentNode.removeChild(t);
+    });
+    return;
+  }
   const table = document.querySelector('table[data-group="'+group+'"]');
   if(!table) return;
   data.copies.forEach(targetSub => {
@@ -1670,6 +1679,9 @@ function renderCopies(key, data){
 
 // 정적 HTML 행에 "↗ 복사" 버튼 주입 (stage 그룹만)
 function injectCopyButtons(){
+  // [2026-06-05] stage 동기화 해제로 인해 copy-row 시스템 비활성화 — ↗ 버튼 더 이상 주입 안 함
+  return;
+  // eslint-disable-next-line no-unreachable
   const stageTable = document.querySelector('table[data-group="stage"]');
   if(!stageTable) return;
   stageTable.querySelectorAll('tr').forEach(tr=>{
@@ -2066,6 +2078,11 @@ function renderOrphanRows(m){
     const d = m[key];
     if(!d || !d.group || !GROUP_LABEL[d.group]) return;
     if(document.querySelector(keySel(key))) return;
+    // [2026-06-05] stage 그룹의 잉여 doc(어제 자동 마이그·copy 잔재) — 같은 erp 가 정적 행에 이미 있으면 orphan 으로 그리지 않음. Firestore 데이터는 보존, DOM 표시만 흡수해 사용자 화면 정리.
+    if(d.group === 'stage' && d.erp){
+      const erpSel = 'input.dec[data-group="stage"][data-erp="'+String(d.erp).replace(/"/g,'\\"')+'"]';
+      if(document.querySelector(erpSel)) return;
+    }
     const table = document.querySelector('table[data-group="'+d.group+'"]');
     if(!table) return;
     const sub = d.subgroup||'';
