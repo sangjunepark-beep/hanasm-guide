@@ -43,8 +43,8 @@
  .missing-table tr.warn td{background:#fff4e5;}
  .missing-table tr[data-miss]:hover td{filter:brightness(0.98);}
  .missing-table tr[data-miss] td:nth-child(2){font-weight:600;color:#1f3a5f;}
- .missing-table .miss-keep-btn:hover{background:#1f3a5f !important;color:#fff !important;border-color:#1f3a5f !important;}
- .missing-table .miss-add-btn:hover{background:#1f3a5f !important;}
+ .missing-table .miss-add-btn:hover:not([disabled]){background:#1f3a5f !important;}
+ .missing-table .miss-name-input:focus{outline:none;box-shadow:0 0 0 2px rgba(44,91,156,.15);}
  input.dec{width:100%;box-sizing:border-box;border:1px solid #c8d4e0;border-radius:3px;padding:6px 9px;font-size:13.5px;font-family:inherit;background:#fffef5;height:32px;}
  input.dec:focus{outline:none;border-color:#2c5b9c;background:#fff;box-shadow:0 0 0 2px rgba(44,91,156,.12);}
  input.dec.final{background:#f4fbf4;border-color:#bcd4bc;}
@@ -2219,48 +2219,66 @@ function initMissingTable(){
   const table = document.querySelector('.missing-table[data-group="missing"]');
   if(!table) return;
   const COL_M = 'erp_missing_status';
+  const debTimers = {};
   table.querySelectorAll('tr[data-miss]').forEach(tr=>{
-    const name = tr.dataset.miss;
-    const lastCell = tr.querySelectorAll('td')[4];
-    if(!lastCell) return;
-    // 버튼 컨테이너
+    const name = tr.dataset.miss; // 불변 key (data-miss 는 doc id 로 사용, 표시명은 별도 displayName 필드)
+    const tds = tr.querySelectorAll('td');
+    const nameCell = tds[1];
+    const lastCell = tds[4];
+    if(!nameCell || !lastCell) return;
+    // 가이드 명칭 셀을 input 으로 교체 (편집 가능)
+    const orig = (nameCell.textContent||'').trim();
+    nameCell.innerHTML = '';
+    const nameInp = document.createElement('input');
+    nameInp.type = 'text';
+    nameInp.className = 'miss-name-input';
+    nameInp.value = orig;
+    nameInp.dataset.original = orig;
+    nameInp.placeholder = orig;
+    nameInp.style.cssText = 'width:100%;box-sizing:border-box;border:1px solid transparent;background:transparent;padding:4px 6px;font-size:13px;font-family:inherit;font-weight:600;color:#1f3a5f;border-radius:3px;';
+    nameInp.addEventListener('focus', ()=>{ nameInp.style.background='#fffef5'; nameInp.style.borderColor='#c8d4e0'; });
+    nameInp.addEventListener('blur', ()=>{ nameInp.style.background='transparent'; nameInp.style.borderColor='transparent'; });
+    nameCell.appendChild(nameInp);
+    // 가이드 명칭 변경 동기화 (IME 보호 + debounce 2000ms)
+    const flushName = async ()=>{
+      if(!getEditor()){ openEditorModal(); return; }
+      const v = nameInp.value.trim();
+      const payload = { name, updatedAt: serverTimestamp(), updatedBy: getEditor() };
+      if(v && v !== orig){ payload.displayName = v; payload.displayName_by = getEditor(); payload.displayName_at = serverTimestamp(); }
+      else { payload.displayName = deleteField(); payload.displayName_by = deleteField(); payload.displayName_at = deleteField(); }
+      try{
+        await setDoc(doc(db, COL_M, name), payload, {merge:true});
+        tick('명칭 저장: '+(v||orig));
+      }catch(e){ tick('⚠️ 명칭 저장실패: '+(e.code||e.message)); console.error(e); }
+    };
+    nameInp.addEventListener('compositionstart', ()=>{ nameInp.dataset.composing='1'; });
+    nameInp.addEventListener('compositionend', ()=>{
+      delete nameInp.dataset.composing;
+      clearTimeout(debTimers['n_'+name]);
+      debTimers['n_'+name] = setTimeout(flushName, 2000);
+    });
+    nameInp.addEventListener('input', ()=>{
+      if(nameInp.dataset.composing==='1') return;
+      clearTimeout(debTimers['n_'+name]);
+      debTimers['n_'+name] = setTimeout(flushName, 2000);
+    });
+    // 버튼 컨테이너 (ERP명칭 규칙에 추가 만)
     const wrap = document.createElement('div');
     wrap.className = 'miss-btns';
     wrap.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;justify-content:center;';
-    const keepBtn = document.createElement('button');
-    keepBtn.type = 'button';
-    keepBtn.className = 'miss-keep-btn';
-    keepBtn.textContent = '✓ 그대로 유지';
-    keepBtn.title = '이 항목은 가이드 그대로 두고 ERP 마스터에는 추가 안 함 — 변경 완료';
-    keepBtn.style.cssText = 'padding:4px 10px;background:#fff;color:#1f3a5f;border:1px solid #2c5b9c;border-radius:4px;cursor:pointer;font-size:11.5px;font-family:inherit;font-weight:600;white-space:nowrap;';
     const addBtn = document.createElement('button');
     addBtn.type = 'button';
     addBtn.className = 'miss-add-btn';
-    addBtn.textContent = '→ ERP에 추가';
+    addBtn.textContent = '→ ERP명칭 규칙에 추가';
     addBtn.title = '재질 표의 분류를 선택해서 신규 항목으로 추가';
-    addBtn.style.cssText = 'padding:4px 10px;background:#2c5b9c;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11.5px;font-family:inherit;font-weight:600;white-space:nowrap;';
+    addBtn.style.cssText = 'padding:5px 12px;background:#2c5b9c;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11.5px;font-family:inherit;font-weight:600;white-space:nowrap;';
     const statusTag = document.createElement('div');
     statusTag.className = 'miss-status-tag';
     statusTag.style.cssText = 'width:100%;text-align:center;font-size:11.5px;margin-top:2px;';
-    wrap.appendChild(keepBtn);
     wrap.appendChild(addBtn);
     wrap.appendChild(statusTag);
     lastCell.appendChild(wrap);
-    // 그대로 유지 토글
-    keepBtn.addEventListener('click', async ()=>{
-      if(!getEditor()){ openEditorModal(); return; }
-      const isKept = tr.dataset.status === 'kept';
-      try{
-        if(isKept){
-          await setDoc(doc(db, COL_M, name), { name, status: deleteField(), kept_by: deleteField(), kept_at: deleteField(), updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
-          tick('체크 해제: '+name);
-        } else {
-          await setDoc(doc(db, COL_M, name), { name, status: 'kept', kept_by: getEditor(), kept_at: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
-          tick('✓ 그대로 유지: '+name);
-        }
-      }catch(e){ tick('⚠️ 저장실패: '+(e.code||e.message)); console.error(e); }
-    });
-    // ERP 추가
+    // ERP명칭 규칙에 추가
     addBtn.addEventListener('click', async ()=>{
       if(!getEditor()){ openEditorModal(); return; }
       const matTable = document.querySelector('table[data-group="material"]');
@@ -2269,38 +2287,40 @@ function initMissingTable(){
         .map(s => s.dataset.subgroup || normSubgroup(s.querySelector('td')?.textContent || ''))
         .filter(Boolean);
       if(!subs.length){ alert('재질 표 분류가 없습니다.'); return; }
+      // 추가할 명칭 = 사용자가 input 에 적은 값 (없으면 원본)
+      const currentName = nameInp.value.trim() || orig;
       const list = subs.map((s, i)=>(i+1)+'. '+s).join('\n');
-      const choice = prompt('"'+name+'" 항목을 재질 표의 어느 분류에 추가할까요?\n\n'+list+'\n\n번호 입력 (예: 1):', '');
+      const choice = prompt('"'+currentName+'" 항목을 재질 표(ERP 명칭 규칙)의 어느 분류에 추가할까요?\n\n'+list+'\n\n번호 입력 (예: 1):', '');
       if(choice===null) return;
       let targetSub = '';
       const num = parseInt(String(choice).trim(), 10);
       if(!isNaN(num) && num >= 1 && num <= subs.length){ targetSub = subs[num-1]; }
       else { targetSub = subs.find(s => s === String(choice).trim()) || ''; }
       if(!targetSub){ alert('유효한 분류 번호가 아닙니다.'); return; }
-      const key = termKey('material', '', name);
+      const key = termKey('material', '', currentName);
       if(document.querySelector(keySel(key))){
-        if(!confirm('"'+name+'" 항목이 이미 재질 표에 있습니다.\n그래도 추가할까요?')) return;
+        if(!confirm('"'+currentName+'" 항목이 이미 재질 표에 있습니다.\n그래도 추가할까요?')) return;
       }
       try{
-        const newRow = buildTermRow('material', name, '(가이드 보완 후보 #4)', true, targetSub);
+        const newRow = buildTermRow('material', currentName, '(가이드 보완 후보 #4)', true, targetSub);
         insertCustomRow(matTable, targetSub, newRow);
         await setDoc(doc(db, COL, key), {
-          group:'material', erp:name, mp:'(가이드 보완 후보 #4)',
+          group:'material', erp:currentName, mp:'(가이드 보완 후보 #4)',
           subgroup:targetSub, custom:true, mapped_from_missing:true,
           updatedAt: serverTimestamp(), updatedBy: getEditor()
         }, {merge:true});
         await addDoc(collection(db,'erp_term_logs'), {
-          key, group:'material', erp:name, subgroup:targetSub,
-          field:'(매핑추가)', before:'', after:name,
+          key, group:'material', erp:currentName, subgroup:targetSub,
+          field:'(매핑추가)', before:'', after:currentName,
           action:'map-from-missing', editor:getEditor(), ts: serverTimestamp()
         });
         // missing status 갱신
         await setDoc(doc(db, COL_M, name), {
-          name, status:'added', target_subgroup: targetSub,
+          name, status:'added', target_subgroup: targetSub, addedName: currentName,
           added_by: getEditor(), added_at: serverTimestamp(),
           updatedAt: serverTimestamp(), updatedBy: getEditor()
         }, {merge:true});
-        tick('→ 등재: '+name+' → 재질·'+targetSub);
+        tick('→ 등재: '+currentName+' → 재질·'+targetSub);
       }catch(e){ tick('⚠️ 등재실패: '+(e.code||e.message)); console.error(e); }
     });
   });
@@ -2308,41 +2328,31 @@ function initMissingTable(){
   onSnapshot(collection(db, COL_M), (snap)=>{
     const m = {};
     snap.forEach(d=>{ m[d.id] = d.data(); });
-    let keptCount = 0, addedCount = 0;
     table.querySelectorAll('tr[data-miss]').forEach(tr=>{
       const name = tr.dataset.miss;
       const d = m[name];
+      const nameInp = tr.querySelector('.miss-name-input');
+      // 명칭 갱신 (다른 사용자 변경 반영, 자기 포커스 중에는 안 건드림)
+      if(nameInp && d?.displayName && document.activeElement !== nameInp && nameInp.value !== d.displayName){
+        nameInp.value = d.displayName;
+      }
       applyMissingRowStyle(tr, d);
-      if(d?.status === 'kept') keptCount++;
-      else if(d?.status === 'added') addedCount++;
     });
-    // 상단 안내 박스에 진행률 표시
-    const miss = document.querySelector('h2 + .miss');
-    // pass
   }, err=>{ console.error('missing onSnapshot', err); });
 }
 function applyMissingRowStyle(tr, d){
   const tag = tr.querySelector('.miss-status-tag');
-  const keepBtn = tr.querySelector('.miss-keep-btn');
   const addBtn = tr.querySelector('.miss-add-btn');
   tr.dataset.status = d?.status || '';
-  if(d?.status === 'kept'){
-    tr.style.background = '#eef7ee';
-    tr.style.opacity = '0.78';
-    if(keepBtn){ keepBtn.style.background = '#3a7a3a'; keepBtn.style.color = '#fff'; keepBtn.style.borderColor = '#3a7a3a'; keepBtn.textContent = '✓ 그대로 유지됨'; }
-    if(addBtn){ addBtn.style.display = 'none'; }
-    if(tag){ tag.innerHTML = '<span style="color:#3a7a3a;font-weight:600;">유지 결정: '+(d.kept_by||'')+'</span>'; }
-  } else if(d?.status === 'added'){
+  if(d?.status === 'added'){
     tr.style.background = '#f0f7ff';
-    if(keepBtn){ keepBtn.style.display = 'none'; }
-    if(addBtn){ addBtn.style.background = '#888'; addBtn.textContent = '✓ 등재됨'; addBtn.disabled = true; }
-    if(tag){ tag.innerHTML = '<span style="color:#2c5b9c;font-weight:600;">→ 재질·'+(d.target_subgroup||'')+'</span><br><span style="color:#666;font-size:10.5px;">'+(d.added_by||'')+'</span>'; }
+    if(addBtn){ addBtn.style.background = '#888'; addBtn.textContent = '✓ 규칙에 등재됨'; addBtn.disabled = true; }
+    if(tag){ tag.innerHTML = '<span style="color:#2c5b9c;font-weight:600;">→ 재질·'+(d.target_subgroup||'')+'</span><br><span style="color:#666;font-size:10.5px;">'+(d.addedName||'')+' / '+(d.added_by||'')+'</span>'; }
   } else {
     // pending
     tr.style.background = '';
     tr.style.opacity = '';
-    if(keepBtn){ keepBtn.style.background = '#fff'; keepBtn.style.color = '#1f3a5f'; keepBtn.style.borderColor = '#2c5b9c'; keepBtn.textContent = '✓ 그대로 유지'; keepBtn.style.display = ''; }
-    if(addBtn){ addBtn.style.background = '#2c5b9c'; addBtn.textContent = '→ ERP에 추가'; addBtn.disabled = false; addBtn.style.display = ''; }
+    if(addBtn){ addBtn.style.background = '#2c5b9c'; addBtn.textContent = '→ ERP명칭 규칙에 추가'; addBtn.disabled = false; }
     if(tag){ tag.innerHTML = ''; }
   }
 }
