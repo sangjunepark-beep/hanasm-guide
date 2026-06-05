@@ -26,6 +26,17 @@
  .stat .oos{background:#e0e0e0;color:#555;}
  .miss{background:#fff4e5;border:1px solid #e8a13a;border-radius:6px;padding:12px 16px;font-size:13.5px;margin:12px 0;}
  .factory{font-size:12.5px;color:#666;background:#f7f7f7;border-radius:6px;padding:10px 14px;margin:10px 0;}
+ details.factory summary{cursor:pointer;font-weight:600;color:#1f3a5f;font-size:13.5px;list-style:none;padding:2px 0;}
+ details.factory summary::-webkit-details-marker{display:none;}
+ details.factory summary::before{content:'▶ ';display:inline-block;transition:transform .15s;margin-right:4px;font-size:11px;color:#888;}
+ details.factory[open] summary::before{transform:rotate(90deg);content:'▶ ';}
+ details.factory summary:hover{color:#2c5b9c;}
+ .outsource-table{width:100%;border-collapse:collapse;margin:8px 0 4px;font-size:13px;background:#fff;}
+ .outsource-table th{background:#1f3a5f;color:#fff;padding:7px 9px;text-align:left;font-weight:600;}
+ .outsource-table td{border:1px solid #d8dee8;padding:6px 9px;vertical-align:middle;color:#333;}
+ .outsource-table tr[data-os]:hover td{background:#fafbfc;}
+ .outsource-table tr[data-os] td:nth-child(2){font-weight:600;color:#1f3a5f;}
+ .outsource-table input.os-memo:focus{outline:none;border-color:#2c5b9c;background:#fff;box-shadow:0 0 0 2px rgba(44,91,156,.12);}
  input.dec{width:100%;box-sizing:border-box;border:1px solid #c8d4e0;border-radius:3px;padding:6px 9px;font-size:13.5px;font-family:inherit;background:#fffef5;height:32px;}
  input.dec:focus{outline:none;border-color:#2c5b9c;background:#fff;box-shadow:0 0 0 2px rgba(44,91,156,.12);}
  input.dec.final{background:#f4fbf4;border-color:#bcd4bc;}
@@ -313,7 +324,40 @@
 <tr class="warn"><td>본사</td><td>(공장)</td><td class="cell"><input class="dec" data-key="stage::본사" data-field="draft" data-group="stage" data-erp="본사" data-mp="(공장)" placeholder="1차 수정안"><div class="meta" data-meta-key="stage::본사" data-meta-field="draft"></div></td><td class="cell"><input class="dec final" data-key="stage::본사" data-field="final" data-group="stage" data-erp="본사" data-mp="(공장)" placeholder="최종 협의안"><div class="meta" data-meta-key="stage::본사" data-meta-field="final"></div></td></tr>
 <tr class="warn"><td>2공장</td><td>(공장)</td><td class="cell"><input class="dec" data-key="stage::2공장" data-field="draft" data-group="stage" data-erp="2공장" data-mp="(공장)" placeholder="1차 수정안"><div class="meta" data-meta-key="stage::2공장" data-meta-field="draft"></div></td><td class="cell"><input class="dec final" data-key="stage::2공장" data-field="final" data-group="stage" data-erp="2공장" data-mp="(공장)" placeholder="최종 협의안"><div class="meta" data-meta-key="stage::2공장" data-meta-field="final"></div></td></tr>
 </table>
-<div class="factory"><b>외주업체·공장 (StageJus 16번~)</b> — 가이드 비교 대상 아님: 본사, 2공장, 해광, 진성, 대일, 아프로액자, 아론, 성원애드피아, 청룡명찰, 실사박사, 동광몰, 돌타월닷컴, 제일금속, 아이작, 와우프레스, 신창안전유리, 검단레이저, 아트사인, 엘림, 애드몰, 광일플라스틱, 유니매트, 인쇄마을, 신애드, 유진애드, 아론/유진애드, 실사박사/신애드 <span style="color:#1f3a5f;">(※ 배면UV인쇄는 외주업체가 아니라 자체 공정 → 위 공정표 '공정 8'로 이동, 2026-06-03 검증)</span></div>
+<details class="factory" open id="outsource-box">
+ <summary><b>외주업체·공장 (StageJus 16번~)</b> · 가이드 비교 대상 아님 · 27건 — 확인하면서 체크</summary>
+ <div style="margin:8px 0 6px;color:#1f3a5f;font-size:12.5px;">※ 배면UV인쇄는 외주업체가 아니라 자체 공정 → 위 공정표 '공정 8'로 이동 (2026-06-03 검증)</div>
+ <table class="outsource-table" data-group="outsource"><tr><th style="width:5%">#</th><th style="width:18%">업체·공장명</th><th style="width:14%">분류</th><th style="width:8%;text-align:center">확인</th><th>비고·메모</th></tr>
+  <tr data-os="본사"><td>1</td><td>본사</td><td>자체 사업장</td><td></td><td></td></tr>
+  <tr data-os="2공장"><td>2</td><td>2공장</td><td>자체 사업장</td><td></td><td></td></tr>
+  <tr data-os="해광"><td>3</td><td>해광</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="진성"><td>4</td><td>진성</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="대일"><td>5</td><td>대일</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="아프로액자"><td>6</td><td>아프로액자</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="아론"><td>7</td><td>아론</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="성원애드피아"><td>8</td><td>성원애드피아</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="청룡명찰"><td>9</td><td>청룡명찰</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="실사박사"><td>10</td><td>실사박사</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="동광몰"><td>11</td><td>동광몰</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="돌타월닷컴"><td>12</td><td>돌타월닷컴</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="제일금속"><td>13</td><td>제일금속</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="아이작"><td>14</td><td>아이작</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="와우프레스"><td>15</td><td>와우프레스</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="신창안전유리"><td>16</td><td>신창안전유리</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="검단레이저"><td>17</td><td>검단레이저</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="아트사인"><td>18</td><td>아트사인</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="엘림"><td>19</td><td>엘림</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="애드몰"><td>20</td><td>애드몰</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="광일플라스틱"><td>21</td><td>광일플라스틱</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="유니매트"><td>22</td><td>유니매트</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="인쇄마을"><td>23</td><td>인쇄마을</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="신애드"><td>24</td><td>신애드</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="유진애드"><td>25</td><td>유진애드</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="아론＋유진애드"><td>26</td><td>아론＋유진애드</td><td>외주 협업</td><td></td><td></td></tr>
+  <tr data-os="실사박사＋신애드"><td>27</td><td>실사박사＋신애드</td><td>외주 협업</td><td></td><td></td></tr>
+ </table>
+ <div style="margin-top:6px;font-size:12px;color:#666;">확인 체크·메모는 Firestore 에 동기화 — 다른 편집자에게도 실시간 반영</div>
+</details>
 <div class="notes" data-section="stage">
  <h3>📝 2. 공정 — 비고 / 협의 기록 <span class="badge n">0</span></h3>
  <div class="entries"></div>
@@ -560,6 +604,7 @@ function init(){
   if(_inited) return;   // 중복 실행 방지 (DOMContentLoaded + readyState 이중 호출 → 비고 2번 저장 버그)
   _inited=true;
   try{ layoutSections(); addRowBtns(); rewriteStageKeysBySubgroup(); injectDragHandles(); injectRowActions(); injectCopyButtons(); }catch(e){ console.error('layout v2', e); }
+  try{ initOutsourceTable(); }catch(e){ console.error('outsource', e); }
   // 모달 버튼 핸들러
   document.querySelectorAll('#editorModal .btns button').forEach(b=>{
     b.addEventListener('click', ()=>{
@@ -2145,6 +2190,107 @@ window.exportCSV = async function(){
 
 // [2026-06-03 보안] 전역 clearAll(전체 삭제) 함수 제거 — 콘솔에서 누구나 전체 삭제 가능했던 위험 제거.
 // 근본 차단은 Firestore 보안규칙(Firebase 콘솔)에서 수행할 것.
+
+// [2026-06-05] 외주업체·공장 체크 표 — Firestore 동기화
+function initOutsourceTable(){
+  const table = document.querySelector('.outsource-table[data-group="outsource"]');
+  if(!table) return;
+  const COL_OS = 'erp_outsource_check';
+  const debTimers = {};
+  table.querySelectorAll('tr[data-os]').forEach(tr=>{
+    const name = tr.dataset.os;
+    const tds = tr.querySelectorAll('td');
+    // 확인 체크박스 (4번째 td)
+    const chkCell = tds[3];
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'os-check';
+    cb.style.cssText = 'width:18px;height:18px;cursor:pointer;accent-color:#3a7a3a;';
+    chkCell.style.textAlign = 'center';
+    chkCell.appendChild(cb);
+    // 메모 input (5번째 td)
+    const memoCell = tds[4];
+    const memo = document.createElement('input');
+    memo.type = 'text';
+    memo.className = 'os-memo';
+    memo.placeholder = '비고·메모 (예: 단가 인상, 거래 중단 등)';
+    memo.style.cssText = 'width:100%;box-sizing:border-box;border:1px solid #d8dee8;border-radius:3px;padding:5px 8px;font-size:12.5px;font-family:inherit;background:#fffef5;';
+    memoCell.appendChild(memo);
+    // 이벤트
+    cb.addEventListener('change', async ()=>{
+      if(!getEditor()){ openEditorModal(); cb.checked = !cb.checked; return; }
+      try{
+        await setDoc(doc(db, COL_OS, name), { name, checked: cb.checked, checked_by: getEditor(), checked_at: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+        tick(cb.checked ? '✓ 체크: '+name : '✕ 해제: '+name);
+        applyOsRowStyle(tr, cb.checked);
+      }catch(e){ tick('⚠️ 체크 실패: '+(e.code||e.message)); console.error(e); }
+    });
+    const flushMemo = async ()=>{
+      if(!getEditor()){ openEditorModal(); return; }
+      try{
+        const v = memo.value.trim();
+        const payload = { name, updatedAt: serverTimestamp(), updatedBy: getEditor() };
+        if(v){ payload.memo = v; payload.memo_by = getEditor(); payload.memo_at = serverTimestamp(); }
+        else { payload.memo = deleteField(); payload.memo_by = deleteField(); payload.memo_at = deleteField(); }
+        await setDoc(doc(db, COL_OS, name), payload, {merge:true});
+        tick('☁️ 메모 저장: '+name);
+      }catch(e){ tick('⚠️ 메모 저장실패: '+(e.code||e.message)); console.error(e); }
+    };
+    // IME 보호 + debounce 2000ms
+    memo.addEventListener('compositionstart', ()=>{ memo.dataset.composing='1'; });
+    memo.addEventListener('compositionend', ()=>{
+      delete memo.dataset.composing;
+      clearTimeout(debTimers[name]);
+      debTimers[name] = setTimeout(flushMemo, 2000);
+    });
+    memo.addEventListener('input', ()=>{
+      if(memo.dataset.composing==='1') return;
+      clearTimeout(debTimers[name]);
+      debTimers[name] = setTimeout(flushMemo, 2000);
+    });
+  });
+  // 실시간 구독
+  onSnapshot(collection(db, COL_OS), (snap)=>{
+    const m = {};
+    snap.forEach(d=>{ m[d.id] = d.data(); });
+    let checkedCount = 0;
+    table.querySelectorAll('tr[data-os]').forEach(tr=>{
+      const name = tr.dataset.os;
+      const d = m[name] || {};
+      const cb = tr.querySelector('.os-check');
+      const memo = tr.querySelector('.os-memo');
+      const wasChecked = cb.checked;
+      if(cb && document.activeElement !== cb) cb.checked = !!d.checked;
+      if(d.checked) checkedCount++;
+      if(memo && document.activeElement !== memo && (memo.value||'') !== (d.memo||'')) memo.value = d.memo||'';
+      applyOsRowStyle(tr, !!d.checked, d.checked_by, d.memo_by);
+    });
+    // summary 카운트 갱신
+    const sum = document.querySelector('#outsource-box summary');
+    if(sum) sum.innerHTML = '<b>외주업체·공장 (StageJus 16번~)</b> · 가이드 비교 대상 아님 · 27건 — 확인 '+checkedCount+'/27';
+  }, err=>{ console.error('outsource onSnapshot', err); });
+}
+function applyOsRowStyle(tr, checked, by, memoBy){
+  if(checked){
+    tr.style.background = '#f0f7f0';
+    tr.style.opacity = '0.85';
+  } else {
+    tr.style.background = '';
+    tr.style.opacity = '';
+  }
+  // 첫 셀에 작성자 태그
+  const tag = tr.querySelector('.os-tag');
+  const firstCell = tr.querySelector('td');
+  if(checked && by){
+    if(!tag){
+      const span = document.createElement('span');
+      span.className = 'os-tag';
+      span.style.cssText = 'display:inline-block;margin-left:6px;padding:1px 6px;background:#3a7a3a;color:#fff;border-radius:8px;font-size:10.5px;font-weight:600;';
+      span.textContent = '✓ '+by;
+      firstCell.appendChild(span);
+    } else { tag.textContent = '✓ '+by; }
+  } else if(tag){ tag.remove(); }
+}
 
 // [2026-06-05] 복원: 어제 자동 마이그가 누락한 옛 stage::erp doc 값을 첫 등장 정적 행의 새 키로 복사. 옛 doc 은 보존(삭제 X).
 window.restoreLostStage = async function(erpList){
