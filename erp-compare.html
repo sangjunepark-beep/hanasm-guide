@@ -2131,6 +2131,38 @@ window.exportCSV = async function(){
 // [2026-06-03 보안] 전역 clearAll(전체 삭제) 함수 제거 — 콘솔에서 누구나 전체 삭제 가능했던 위험 제거.
 // 근본 차단은 Firestore 보안규칙(Firebase 콘솔)에서 수행할 것.
 
+// [2026-06-05] 디버그: 편집자 작업 내역 조회 (콘솔에서 findEditorData('송기용') 호출)
+window.findEditorData = async function(editorName){
+  const name = editorName || '송기용';
+  const snap = await getDocs(collection(db, COL));
+  const rows = [];
+  snap.forEach(d=>{
+    const x = d.data() || {};
+    const allBy = (x.draft_by||'')+' | '+(x.final_by||'')+' | '+(x.updatedBy||'');
+    if(allBy.indexOf(name) < 0) return;
+    rows.push({
+      id: d.id,
+      group: x.group||'',
+      subgroup: x.subgroup||'',
+      erp: x.erp||'',
+      mp: x.mp||'',
+      draft: x.draft||'',
+      final: x.final||'',
+      draft_by: x.draft_by||'',
+      final_by: x.final_by||'',
+      custom: !!x.custom,
+      migrated_from: x.migrated_from||'',
+      copies: (x.copies||[]).join(' / '),
+      updatedAt: x.updatedAt?.toDate?.()?.toLocaleString()||''
+    });
+  });
+  rows.sort((a,b)=>(a.group+a.subgroup+a.erp).localeCompare(b.group+b.subgroup+b.erp));
+  console.table(rows);
+  console.log('총 '+rows.length+'건 ('+name+'이 들어간 doc)');
+  window._lastFind = rows;
+  return rows;
+};
+
 // [#19] 페이지 닫기 전 debounce 안의 미저장 값 즉시 flush — 마지막 입력 손실 방지
 window.addEventListener('beforeunload', (e)=>{
   let dirty = false;
