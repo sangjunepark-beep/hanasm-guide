@@ -37,6 +37,14 @@
  .outsource-table tr[data-os]:hover td{background:#fafbfc;}
  .outsource-table tr[data-os] td:nth-child(2){font-weight:600;color:#1f3a5f;}
  .outsource-table input.os-memo:focus{outline:none;border-color:#2c5b9c;background:#fff;box-shadow:0 0 0 2px rgba(44,91,156,.12);}
+ .missing-table{width:100%;border-collapse:collapse;margin:8px 0 14px;font-size:13px;background:#fff;}
+ .missing-table th{background:#1f3a5f;color:#fff;padding:7px 9px;text-align:left;font-weight:600;}
+ .missing-table td{border:1px solid #d8dee8;padding:7px 10px;vertical-align:middle;line-height:1.5;}
+ .missing-table tr.warn td{background:#fff4e5;}
+ .missing-table tr[data-miss]:hover td{filter:brightness(0.98);}
+ .missing-table tr[data-miss] td:nth-child(2){font-weight:600;color:#1f3a5f;}
+ .missing-table .miss-keep-btn:hover{background:#1f3a5f !important;color:#fff !important;border-color:#1f3a5f !important;}
+ .missing-table .miss-add-btn:hover{background:#1f3a5f !important;}
  input.dec{width:100%;box-sizing:border-box;border:1px solid #c8d4e0;border-radius:3px;padding:6px 9px;font-size:13.5px;font-family:inherit;background:#fffef5;height:32px;}
  input.dec:focus{outline:none;border-color:#2c5b9c;background:#fff;box-shadow:0 0 0 2px rgba(44,91,156,.12);}
  input.dec.final{background:#f4fbf4;border-color:#bcd4bc;}
@@ -210,7 +218,7 @@
  <div class="btns">
   <button data-name="대표님">대표님</button>
   <button data-name="박상준 차장">박상준 차장</button>
-  <button data-name="송기용 팀장">송기용 팀장</button>
+  <button data-name="송기용팀장님">송기용팀장님 (제품개발)</button>
   <button data-name="천현정 차장">천현정 차장</button>
   <button data-name="강두원 팀장">강두원 팀장</button>
  </div>
@@ -222,7 +230,7 @@
    <option value="">선택</option>
    <option>대표님</option>
    <option>박상준 차장</option>
-   <option>송기용 팀장</option>
+   <option>송기용팀장님</option>
    <option>천현정 차장</option>
    <option>강두원 팀장</option>
   </select>
@@ -325,36 +333,34 @@
 <tr class="warn"><td>2공장</td><td>(공장)</td><td class="cell"><input class="dec" data-key="stage::2공장" data-field="draft" data-group="stage" data-erp="2공장" data-mp="(공장)" placeholder="1차 수정안"><div class="meta" data-meta-key="stage::2공장" data-meta-field="draft"></div></td><td class="cell"><input class="dec final" data-key="stage::2공장" data-field="final" data-group="stage" data-erp="2공장" data-mp="(공장)" placeholder="최종 협의안"><div class="meta" data-meta-key="stage::2공장" data-meta-field="final"></div></td></tr>
 </table>
 <details class="factory" open id="outsource-box">
- <summary><b>외주업체·공장 (StageJus 16번~)</b> · 가이드 비교 대상 아님 · 27건 — 확인하면서 체크</summary>
+ <summary><b>외주업체 (StageJus 16번~)</b> · 가이드 비교 대상 아님 · 25건 — 확인하면서 체크 (본사·2공장은 위 공정표에 별도 있음)</summary>
  <div style="margin:8px 0 6px;color:#1f3a5f;font-size:12.5px;">※ 배면UV인쇄는 외주업체가 아니라 자체 공정 → 위 공정표 '공정 8'로 이동 (2026-06-03 검증)</div>
  <table class="outsource-table" data-group="outsource"><tr><th style="width:5%">#</th><th style="width:18%">업체·공장명</th><th style="width:14%">분류</th><th style="width:8%;text-align:center">확인</th><th>비고·메모</th></tr>
-  <tr data-os="본사"><td>1</td><td>본사</td><td>자체 사업장</td><td></td><td></td></tr>
-  <tr data-os="2공장"><td>2</td><td>2공장</td><td>자체 사업장</td><td></td><td></td></tr>
-  <tr data-os="해광"><td>3</td><td>해광</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="진성"><td>4</td><td>진성</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="대일"><td>5</td><td>대일</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="아프로액자"><td>6</td><td>아프로액자</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="아론"><td>7</td><td>아론</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="성원애드피아"><td>8</td><td>성원애드피아</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="청룡명찰"><td>9</td><td>청룡명찰</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="실사박사"><td>10</td><td>실사박사</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="동광몰"><td>11</td><td>동광몰</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="돌타월닷컴"><td>12</td><td>돌타월닷컴</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="제일금속"><td>13</td><td>제일금속</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="아이작"><td>14</td><td>아이작</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="와우프레스"><td>15</td><td>와우프레스</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="신창안전유리"><td>16</td><td>신창안전유리</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="검단레이저"><td>17</td><td>검단레이저</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="아트사인"><td>18</td><td>아트사인</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="엘림"><td>19</td><td>엘림</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="애드몰"><td>20</td><td>애드몰</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="광일플라스틱"><td>21</td><td>광일플라스틱</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="유니매트"><td>22</td><td>유니매트</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="인쇄마을"><td>23</td><td>인쇄마을</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="신애드"><td>24</td><td>신애드</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="유진애드"><td>25</td><td>유진애드</td><td>외주업체</td><td></td><td></td></tr>
-  <tr data-os="아론＋유진애드"><td>26</td><td>아론＋유진애드</td><td>외주 협업</td><td></td><td></td></tr>
-  <tr data-os="실사박사＋신애드"><td>27</td><td>실사박사＋신애드</td><td>외주 협업</td><td></td><td></td></tr>
+  <tr data-os="해광"><td>1</td><td>해광</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="진성"><td>2</td><td>진성</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="대일"><td>3</td><td>대일</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="아프로액자"><td>4</td><td>아프로액자</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="아론"><td>5</td><td>아론</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="성원애드피아"><td>6</td><td>성원애드피아</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="청룡명찰"><td>7</td><td>청룡명찰</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="실사박사"><td>8</td><td>실사박사</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="동광몰"><td>9</td><td>동광몰</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="돌타월닷컴"><td>10</td><td>돌타월닷컴</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="제일금속"><td>11</td><td>제일금속</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="아이작"><td>12</td><td>아이작</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="와우프레스"><td>13</td><td>와우프레스</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="신창안전유리"><td>14</td><td>신창안전유리</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="검단레이저"><td>15</td><td>검단레이저</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="아트사인"><td>16</td><td>아트사인</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="엘림"><td>17</td><td>엘림</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="애드몰"><td>18</td><td>애드몰</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="광일플라스틱"><td>19</td><td>광일플라스틱</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="유니매트"><td>20</td><td>유니매트</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="인쇄마을"><td>21</td><td>인쇄마을</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="신애드"><td>22</td><td>신애드</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="유진애드"><td>23</td><td>유진애드</td><td>외주업체</td><td></td><td></td></tr>
+  <tr data-os="아론＋유진애드"><td>24</td><td>아론＋유진애드</td><td>외주 협업</td><td></td><td></td></tr>
+  <tr data-os="실사박사＋신애드"><td>25</td><td>실사박사＋신애드</td><td>외주 협업</td><td></td><td></td></tr>
  </table>
  <div style="margin-top:6px;font-size:12px;color:#666;">확인 체크·메모는 Firestore 에 동기화 — 다른 편집자에게도 실시간 반영</div>
 </details>
@@ -458,7 +464,23 @@
 </div>
 
 <h2>4. 가이드엔 있는데 ERP에 없는 자재 (보완 후보)</h2>
-<div class="miss"><b>14건 → 실질 ~11건</b> — 표준화 시 ERP 마스터에 추가 고려:<br>압출판 · 로마크 · 초고휘도 · 프리즘 · 부직포 · 텐트천 · 메쉬 · PE망사 · 합성지 · 합성비점착 · 랩핑 · 엠보 · 옥외용시트 · 옥내용시트<br><span style="display:block;margin-top:8px;color:#a05a00;font-size:12.5px;">⚠️ 2026-06-03 검증 — <b>로마크</b>(≈메탈표찰)·<b>초고휘도/프리즘</b>(≈고휘도반사지)는 기존 ERP 항목과 중복 가능. 신규 추가보다 기존 명칭에 매핑·등급 편입 검토. 실거래 1건 확인 후 등재.</span></div>
+<div class="miss"><b>14건 → 실질 ~11건</b> — 표준화 시 ERP 마스터에 추가 고려.<br><span style="display:block;margin-top:8px;color:#a05a00;font-size:12.5px;">⚠️ 2026-06-03 검증 — <b>로마크</b>(≈메탈표찰)·<b>초고휘도/프리즘</b>(≈고휘도반사지)는 기존 ERP 항목과 중복 가능. 신규 추가보다 기존 명칭에 매핑·등급 편입 검토. 실거래 1건 확인 후 등재.</span></div>
+<table class="missing-table" data-group="missing"><tr><th style="width:5%">#</th><th style="width:14%">가이드 명칭</th><th style="width:14%">분류 (추정)</th><th>권장 조치 / 비고</th><th style="width:22%;text-align:center">상태 · 결정</th></tr>
+ <tr data-miss="압출판"><td>1</td><td>압출판</td><td>보드류</td><td>PVC압출판·AL압출판 계열. 신규 등재 검토.</td><td></td></tr>
+ <tr data-miss="로마크" class="warn"><td>2</td><td>로마크</td><td>표찰판재</td><td>⚠️ ERP <b>"메탈표찰"</b>과 중복 가능. 신규 추가 대신 기존 항목에 매핑·등급 편입 검토.</td><td></td></tr>
+ <tr data-miss="초고휘도" class="warn"><td>3</td><td>초고휘도</td><td>반사지 등급</td><td>⚠️ ERP <b>"고휘도반사지"</b>의 상위 등급으로 추정. 별도 등재보다 등급 옵션으로 편입 검토.</td><td></td></tr>
+ <tr data-miss="프리즘" class="warn"><td>4</td><td>프리즘</td><td>반사지 등급</td><td>⚠️ ERP <b>"고휘도반사지"</b>의 프리즘 반사방식 등급. 등급 옵션으로 편입 검토.</td><td></td></tr>
+ <tr data-miss="부직포"><td>5</td><td>부직포</td><td>원단류</td><td>실거래 1건 확인 후 등재.</td><td></td></tr>
+ <tr data-miss="텐트천"><td>6</td><td>텐트천</td><td>원단류</td><td>방수 텐트지. 실거래 1건 확인 후 등재.</td><td></td></tr>
+ <tr data-miss="메쉬"><td>7</td><td>메쉬</td><td>원단류 (현수막)</td><td>현수막용 메쉬 원단. 신규 등재 검토.</td><td></td></tr>
+ <tr data-miss="PE망사"><td>8</td><td>PE망사</td><td>원단류 (안전망)</td><td>안전망·가림막용 PE 망사. 신규 등재 검토.</td><td></td></tr>
+ <tr data-miss="합성지"><td>9</td><td>합성지</td><td>합성지/필름</td><td>유포지·PP 합성지 계열. 신규 등재 검토.</td><td></td></tr>
+ <tr data-miss="합성비점착"><td>10</td><td>합성비점착</td><td>합성지/필름</td><td>비점착 합성지. 신규 등재 검토.</td><td></td></tr>
+ <tr data-miss="랩핑"><td>11</td><td>랩핑</td><td>시트류</td><td>랩핑용 시트(차량·가구 등). 신규 등재 검토.</td><td></td></tr>
+ <tr data-miss="엠보"><td>12</td><td>엠보</td><td>시트류</td><td>엠보싱 시트. 신규 등재 검토.</td><td></td></tr>
+ <tr data-miss="옥외용시트"><td>13</td><td>옥외용시트</td><td>시트류 (용도)</td><td>옥외용 사인시트 등급. 시트 용도 옵션 편입 검토.</td><td></td></tr>
+ <tr data-miss="옥내용시트"><td>14</td><td>옥내용시트</td><td>시트류 (용도)</td><td>옥내용 사인시트 등급. 시트 용도 옵션 편입 검토.</td><td></td></tr>
+</table>
 <div class="notes" data-section="missing">
  <h3>📝 4. ERP 마스터 보완 — 비고 / 협의 기록 <span class="badge n">0</span></h3>
  <div class="entries"></div>
@@ -474,7 +496,7 @@
 <tr><td>장비</td><td>UV출력기</td><td>UV 평판</td><td>장비 이름을 <b>"UV 평판"</b>으로 통일. (그냥 "UV"가 아니라 인쇄 방식까지 분명히 표시)</td></tr>
 <tr><td>공정</td><td>UV인쇄 / 솔벤인쇄 / 수성출력 / 라텍스출력</td><td>UV평판 / 솔벤트 / 수성 / 라텍스</td><td>⚠️ 무조건 <b>"○○인쇄"</b>로 통일하기엔 문제 있음. <b>장비명</b>(UV출력기·수성출력)과 <b>공정명</b>(UV인쇄·수성출력)은 서로 다른 개념입니다. <b>공정명만 끝글자를 "인쇄"로 통일</b>(예: UV인쇄·솔벤인쇄·수성인쇄·라텍스인쇄)하고 <b>장비명은 그대로</b> 두는 게 정리됩니다.</td></tr>
 <tr><td>자재</td><td>포맥스1T·2T·3T·5T (4종 분리)</td><td>포맥스 (두께 옵션)</td><td>ERP의 자재 마스터에는 <b>"포맥스" 하나만</b> 등록하고, <b>두께(1T/2T/3T/5T)는 별도 옵션</b>으로 따로 관리하는 걸 권장합니다.</td></tr>
-<tr class="warn"><td>자재</td><td>포마트10T</td><td>(미정의)</td><td>⚠️ <b>송팀장(생산) 확인 필요</b>. ERP를 보면 "포맥스10T"는 없고 <b>"포마트10T"만 실제 등록</b>되어 있습니다. <br><b>① 포맥스 오타인지</b>, <b>② 아예 다른 재질(두꺼운 보드류)인지</b> 아직 모름. 함부로 "오타니까 합치자"라고 단정하지 말고 생산팀에 물어보고 결정.</td></tr>
+<tr class="warn"><td>자재</td><td>포마트10T</td><td>(미정의)</td><td>⚠️ <b>송기용팀장님(제품개발) 확인 필요</b>. ERP를 보면 "포맥스10T"는 없고 <b>"포마트10T"만 실제 등록</b>되어 있습니다. <br><b>① 포맥스 오타인지</b>, <b>② 아예 다른 재질(두꺼운 보드류)인지</b> 아직 모름. 함부로 "오타니까 합치자"라고 단정하지 말고 제품개발팀에 확인 후 결정.</td></tr>
 <tr><td>자재</td><td>라텍스켈</td><td>캘그레이/캘 시트(랩핑)</td><td><b>"라텍스"는 인쇄 장비 이름</b>, <b>"캘"은 시트류 이름</b>. 같은 이름이 다른 걸 가리켜서 헷갈립니다. 이름을 분리해서 정리 필요.</td></tr>
 <tr class="warn"><td>장비·공정</td><td>라텍스출력·수성출력·슈마재단·본사·2공장</td><td>(장비/공정 중복)</td><td>⚠️ <b>같은 이름이 장비에도, 공정에도 등록된 것이 5건</b>(라텍스출력·수성출력·슈마재단·본사·2공장). 어느 걸 가리키는지 헷갈리니, <b>"장비:라텍스출력"</b>·<b>"공정:라텍스출력"</b>처럼 구분 표기를 권장. <b>단, ERP의 원래 값은 그대로 둠</b> (옛 데이터 보존).</td></tr>
 <tr class="warn"><td>분류</td><td>본사 · 2공장</td><td>(공장/사업장)</td><td>⚠️ <b>"본사"·"2공장"은 장비도 아니고 공정도 아닙니다</b>. 그냥 일하는 장소(사업장)예요. 장비·공정 마스터에서 빼고 <b>별도 사업장 항목</b>으로 옮기길 권장.</td></tr>
@@ -499,7 +521,7 @@
  <li style="margin-top:6px;"><b>🔍 2026-06-03 검증 반영</b> — 아래 항목 추가·정정:</li>
  <li style="margin-left:16px;">장비명=공정명 동일 5건(라텍스출력·수성출력·슈마재단·본사·2공장) → 레이어 구분. <b>본사·2공장은 사업장</b>(설비/공정 아님).</li>
  <li style="margin-left:16px;"><b>배면UV인쇄</b>는 ERP 실재 공정(외주 아님) → 공정표 '공정 8'로 편입.</li>
- <li style="margin-left:16px;"><b>포마트10T</b>는 오타 단정 금지 → 생산팀 확인 후 결정.</li>
+ <li style="margin-left:16px;"><b>포마트10T</b>는 오타 단정 금지 → 제품개발팀(송기용팀장님) 확인 후 결정.</li>
  <li style="margin-left:16px;"><b>ERP 코드값 rename 금지</b> 원칙 — 별칭·표시명으로 통일(주문·이력 보존).</li>
  <li style="margin-left:16px;color:#b3261e;"><b>⚠️ 보안</b> — 백엔드(Firestore)가 무인증 공개 상태. <b>Firebase 콘솔에서 보안규칙 차단 필요</b>. 전역 clearAll 함수는 제거함.</li>
  <li style="margin-left:16px;">협의 진척: <b>1차만 입력·최종 0건</b> → '1차→최종 승격' 의사결정(정족수) 회의 필요.</li>
@@ -605,6 +627,7 @@ function init(){
   _inited=true;
   try{ layoutSections(); addRowBtns(); rewriteStageKeysBySubgroup(); injectDragHandles(); injectRowActions(); injectCopyButtons(); }catch(e){ console.error('layout v2', e); }
   try{ initOutsourceTable(); }catch(e){ console.error('outsource', e); }
+  try{ initMissingTable(); }catch(e){ console.error('missing', e); }
   // 모달 버튼 핸들러
   document.querySelectorAll('#editorModal .btns button').forEach(b=>{
     b.addEventListener('click', ()=>{
@@ -1372,7 +1395,7 @@ function buildRowActionsHtml(key){
   });
   dsHtml += '</span>';
   const rationale = '<button type="button" class="rationale-toggle" data-key="'+e(key)+'" title="결정 사유 / 비고 (왜 이 안인가)">📝</button><span class="rationale-preview" data-rationale-preview-key="'+e(key)+'"></span>';
-  const box = '<div class="rationale-box" data-rationale-box-key="'+e(key)+'"><textarea placeholder="이 행의 결정 사유 · 비고 (예: 장비명 아닌 후공정명으로 통일 — 송팀장 제안)"></textarea><div class="rationale-meta" data-rationale-meta-key="'+e(key)+'"></div></div>';
+  const box = '<div class="rationale-box" data-rationale-box-key="'+e(key)+'"><textarea placeholder="이 행의 결정 사유 · 비고 (예: 장비명 아닌 후공정명으로 통일 — 송기용팀장님 제안)"></textarea><div class="rationale-meta" data-rationale-meta-key="'+e(key)+'"></div></div>';
   return '<div class="row-actions">'+confirmHtml+rationale+dsHtml+'</div>'+box;
 }
 
@@ -2191,6 +2214,139 @@ window.exportCSV = async function(){
 // [2026-06-03 보안] 전역 clearAll(전체 삭제) 함수 제거 — 콘솔에서 누구나 전체 삭제 가능했던 위험 제거.
 // 근본 차단은 Firestore 보안규칙(Firebase 콘솔)에서 수행할 것.
 
+// [2026-06-05] 표 4 (가이드엔 있는데 ERP에 없는 자재) 상태 표 — '그대로 유지' 토글 + 'ERP에 추가' 분류 선택. Firestore 동기화.
+function initMissingTable(){
+  const table = document.querySelector('.missing-table[data-group="missing"]');
+  if(!table) return;
+  const COL_M = 'erp_missing_status';
+  table.querySelectorAll('tr[data-miss]').forEach(tr=>{
+    const name = tr.dataset.miss;
+    const lastCell = tr.querySelectorAll('td')[4];
+    if(!lastCell) return;
+    // 버튼 컨테이너
+    const wrap = document.createElement('div');
+    wrap.className = 'miss-btns';
+    wrap.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;justify-content:center;';
+    const keepBtn = document.createElement('button');
+    keepBtn.type = 'button';
+    keepBtn.className = 'miss-keep-btn';
+    keepBtn.textContent = '✓ 그대로 유지';
+    keepBtn.title = '이 항목은 가이드 그대로 두고 ERP 마스터에는 추가 안 함 — 변경 완료';
+    keepBtn.style.cssText = 'padding:4px 10px;background:#fff;color:#1f3a5f;border:1px solid #2c5b9c;border-radius:4px;cursor:pointer;font-size:11.5px;font-family:inherit;font-weight:600;white-space:nowrap;';
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'miss-add-btn';
+    addBtn.textContent = '→ ERP에 추가';
+    addBtn.title = '재질 표의 분류를 선택해서 신규 항목으로 추가';
+    addBtn.style.cssText = 'padding:4px 10px;background:#2c5b9c;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11.5px;font-family:inherit;font-weight:600;white-space:nowrap;';
+    const statusTag = document.createElement('div');
+    statusTag.className = 'miss-status-tag';
+    statusTag.style.cssText = 'width:100%;text-align:center;font-size:11.5px;margin-top:2px;';
+    wrap.appendChild(keepBtn);
+    wrap.appendChild(addBtn);
+    wrap.appendChild(statusTag);
+    lastCell.appendChild(wrap);
+    // 그대로 유지 토글
+    keepBtn.addEventListener('click', async ()=>{
+      if(!getEditor()){ openEditorModal(); return; }
+      const isKept = tr.dataset.status === 'kept';
+      try{
+        if(isKept){
+          await setDoc(doc(db, COL_M, name), { name, status: deleteField(), kept_by: deleteField(), kept_at: deleteField(), updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+          tick('체크 해제: '+name);
+        } else {
+          await setDoc(doc(db, COL_M, name), { name, status: 'kept', kept_by: getEditor(), kept_at: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+          tick('✓ 그대로 유지: '+name);
+        }
+      }catch(e){ tick('⚠️ 저장실패: '+(e.code||e.message)); console.error(e); }
+    });
+    // ERP 추가
+    addBtn.addEventListener('click', async ()=>{
+      if(!getEditor()){ openEditorModal(); return; }
+      const matTable = document.querySelector('table[data-group="material"]');
+      if(!matTable){ alert('재질 표를 찾지 못했습니다.'); return; }
+      const subs = Array.from(matTable.querySelectorAll('tr.flowsep'))
+        .map(s => s.dataset.subgroup || normSubgroup(s.querySelector('td')?.textContent || ''))
+        .filter(Boolean);
+      if(!subs.length){ alert('재질 표 분류가 없습니다.'); return; }
+      const list = subs.map((s, i)=>(i+1)+'. '+s).join('\n');
+      const choice = prompt('"'+name+'" 항목을 재질 표의 어느 분류에 추가할까요?\n\n'+list+'\n\n번호 입력 (예: 1):', '');
+      if(choice===null) return;
+      let targetSub = '';
+      const num = parseInt(String(choice).trim(), 10);
+      if(!isNaN(num) && num >= 1 && num <= subs.length){ targetSub = subs[num-1]; }
+      else { targetSub = subs.find(s => s === String(choice).trim()) || ''; }
+      if(!targetSub){ alert('유효한 분류 번호가 아닙니다.'); return; }
+      const key = termKey('material', '', name);
+      if(document.querySelector(keySel(key))){
+        if(!confirm('"'+name+'" 항목이 이미 재질 표에 있습니다.\n그래도 추가할까요?')) return;
+      }
+      try{
+        const newRow = buildTermRow('material', name, '(가이드 보완 후보 #4)', true, targetSub);
+        insertCustomRow(matTable, targetSub, newRow);
+        await setDoc(doc(db, COL, key), {
+          group:'material', erp:name, mp:'(가이드 보완 후보 #4)',
+          subgroup:targetSub, custom:true, mapped_from_missing:true,
+          updatedAt: serverTimestamp(), updatedBy: getEditor()
+        }, {merge:true});
+        await addDoc(collection(db,'erp_term_logs'), {
+          key, group:'material', erp:name, subgroup:targetSub,
+          field:'(매핑추가)', before:'', after:name,
+          action:'map-from-missing', editor:getEditor(), ts: serverTimestamp()
+        });
+        // missing status 갱신
+        await setDoc(doc(db, COL_M, name), {
+          name, status:'added', target_subgroup: targetSub,
+          added_by: getEditor(), added_at: serverTimestamp(),
+          updatedAt: serverTimestamp(), updatedBy: getEditor()
+        }, {merge:true});
+        tick('→ 등재: '+name+' → 재질·'+targetSub);
+      }catch(e){ tick('⚠️ 등재실패: '+(e.code||e.message)); console.error(e); }
+    });
+  });
+  // 구독
+  onSnapshot(collection(db, COL_M), (snap)=>{
+    const m = {};
+    snap.forEach(d=>{ m[d.id] = d.data(); });
+    let keptCount = 0, addedCount = 0;
+    table.querySelectorAll('tr[data-miss]').forEach(tr=>{
+      const name = tr.dataset.miss;
+      const d = m[name];
+      applyMissingRowStyle(tr, d);
+      if(d?.status === 'kept') keptCount++;
+      else if(d?.status === 'added') addedCount++;
+    });
+    // 상단 안내 박스에 진행률 표시
+    const miss = document.querySelector('h2 + .miss');
+    // pass
+  }, err=>{ console.error('missing onSnapshot', err); });
+}
+function applyMissingRowStyle(tr, d){
+  const tag = tr.querySelector('.miss-status-tag');
+  const keepBtn = tr.querySelector('.miss-keep-btn');
+  const addBtn = tr.querySelector('.miss-add-btn');
+  tr.dataset.status = d?.status || '';
+  if(d?.status === 'kept'){
+    tr.style.background = '#eef7ee';
+    tr.style.opacity = '0.78';
+    if(keepBtn){ keepBtn.style.background = '#3a7a3a'; keepBtn.style.color = '#fff'; keepBtn.style.borderColor = '#3a7a3a'; keepBtn.textContent = '✓ 그대로 유지됨'; }
+    if(addBtn){ addBtn.style.display = 'none'; }
+    if(tag){ tag.innerHTML = '<span style="color:#3a7a3a;font-weight:600;">유지 결정: '+(d.kept_by||'')+'</span>'; }
+  } else if(d?.status === 'added'){
+    tr.style.background = '#f0f7ff';
+    if(keepBtn){ keepBtn.style.display = 'none'; }
+    if(addBtn){ addBtn.style.background = '#888'; addBtn.textContent = '✓ 등재됨'; addBtn.disabled = true; }
+    if(tag){ tag.innerHTML = '<span style="color:#2c5b9c;font-weight:600;">→ 재질·'+(d.target_subgroup||'')+'</span><br><span style="color:#666;font-size:10.5px;">'+(d.added_by||'')+'</span>'; }
+  } else {
+    // pending
+    tr.style.background = '';
+    tr.style.opacity = '';
+    if(keepBtn){ keepBtn.style.background = '#fff'; keepBtn.style.color = '#1f3a5f'; keepBtn.style.borderColor = '#2c5b9c'; keepBtn.textContent = '✓ 그대로 유지'; keepBtn.style.display = ''; }
+    if(addBtn){ addBtn.style.background = '#2c5b9c'; addBtn.textContent = '→ ERP에 추가'; addBtn.disabled = false; addBtn.style.display = ''; }
+    if(tag){ tag.innerHTML = ''; }
+  }
+}
+
 // [2026-06-05] 외주업체·공장 체크 표 — Firestore 동기화
 function initOutsourceTable(){
   const table = document.querySelector('.outsource-table[data-group="outsource"]');
@@ -2322,8 +2478,8 @@ window.restoreLostStage = async function(erpList){
       restored_from: 'stage::'+erp,
       restored_at: serverTimestamp()
     };
-    if(old.draft){ payload.draft = old.draft; payload.draft_by = old.draft_by || '송기용 팀장'; if(old.draft_at) payload.draft_at = old.draft_at; }
-    if(old.final){ payload.final = old.final; payload.final_by = old.final_by || '송기용 팀장'; if(old.final_at) payload.final_at = old.final_at; }
+    if(old.draft){ payload.draft = old.draft; payload.draft_by = old.draft_by || '송기용팀장님'; if(old.draft_at) payload.draft_at = old.draft_at; }
+    if(old.final){ payload.final = old.final; payload.final_by = old.final_by || '송기용팀장님'; if(old.final_at) payload.final_at = old.final_at; }
     try{
       await setDoc(doc(db, COL, newKey), payload, {merge:true});
       results.push({erp, status:'OK', newKey, draft: payload.draft||'', final: payload.final||''});
