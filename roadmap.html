@@ -211,41 +211,41 @@ footer{padding:30px 20px;text-align:center;color:#5a6a85;font-size:12px;border-t
   <div class="phase-inner">
     <div class="num">2</div>
     <div class="label">▍ MID · 개발팀 검토 후 일정 확정</div>
-    <h2>ERP 자동 적용<br>가이드가 바뀌면 ERP도 자동</h2>
-    <p class="lead">개발팀이 ERP 안에 규정화 페이지 + 연동 DB를 구축. 가이드 도구에서 5명이 명칭을 변경하면 ERP의 공정·자재·장비 명칭에 자동 반영.</p>
+    <h2>회의 도구 데이터를 ERP DB로 이전<br>ERP가 정답 출처가 됨</h2>
+    <p class="lead">현재 회의 도구는 Firestore(임시 저장소)에 결정 데이터를 모으는 단계. 5명 명칭 규정이 끝나면 그 데이터를 통째로 ERP DB로 옮기고, 그 후로는 <b>ERP DB가 모든 시스템의 정답 출처</b>가 됨. Firestore는 회의 단계 도구로만 남거나 폐기.</p>
 
     <div class="cards">
       <div class="card" onclick="this.classList.toggle('expanded')">
         <div class="icon">🛠️</div>
-        <h3>규정화 페이지 구축</h3>
-        <p>개발팀이 ERP에 자재·공정·장비 표준 명칭 관리 페이지 신설. 가이드 도구와 연동.</p>
+        <h3>ERP에 표준 명칭 DB 구축</h3>
+        <p>개발팀이 ERP 안에 자재·공정·장비 표준 명칭 관리 DB + 페이지 신설. 회의 도구의 결정 데이터를 이전.</p>
         <div class="more">▼ 자세히</div>
         <div class="detail">
-          · ERP 안에 자재 마스터 페이지 신설.<br>
-          · 가이드 도구의 confirmed 명칭을 ERP가 자동으로 받아옴.<br>
-          · 내부 API 1~2개로 연결. <b>작업 기간은 개발팀 검토 후 확정.</b>
+          · ERP 안에 표준 명칭 마스터 DB 신설 + 관리 페이지 구축.<br>
+          · Firestore 의 회의 도구 결정 데이터를 ERP DB 로 이관.<br>
+          · 이전 후엔 ERP DB 가 정답 출처. <b>구축 범위·기간은 개발팀 검토 후 확정.</b>
         </div>
       </div>
       <div class="card" onclick="this.classList.toggle('expanded')">
         <div class="icon">🔄</div>
-        <h3>가이드 → ERP 자동 반영</h3>
-        <p>가이드 도구에서 5명이 명칭 변경 → 다음날 ERP 화면에서 그대로 보임. 손으로 옮길 일 없음.</p>
+        <h3>ERP DB → 전 시스템 적용</h3>
+        <p>이전 완료 후엔 ERP DB가 정답. ERP·상품DB·챗봇이 모두 ERP DB의 명칭을 참조.</p>
         <div class="more">▼ 자세히</div>
         <div class="detail">
-          · 가이드 도구의 변경 이벤트(Firestore confirmed) → Cloud Function이 감지 → ERP API 호출 → 즉시 반영.<br>
-          · 양방향 매핑 테이블에 옛 이름·새 이름·ERP 코드 보관.<br>
-          · 진짜 SSOT(한 곳 정답 관리) 실현.
+          · ERP 화면·서식·공정·재고 → 모두 ERP DB 명칭 사용.<br>
+          · 신규 명칭 추가·변경은 ERP 관리 페이지에서 직접 (회의 도구 X).<br>
+          · 양방향 매핑 테이블도 ERP DB 안에 — 옛 이름·새 이름·코드 보존.
         </div>
       </div>
       <div class="card" onclick="this.classList.toggle('expanded')">
         <div class="icon">📊</div>
         <h3>전 부서 동일 명칭</h3>
-        <p>웹팀·제품개발·생산·CS 모두 같은 자재명·공정명·장비명. 매번 손으로 옮길 일 없음.</p>
+        <p>웹팀·제품개발·생산·CS 모두 ERP DB 명칭을 봄. 매번 손으로 옮길 일 없음.</p>
         <div class="more">▼ 자세히</div>
         <div class="detail">
           · ERP 코드값(ID)은 영구 보존 — 옛 주문 검색·매출 이력 유지.<br>
-          · 표시 명칭만 통일 — 화면·문서·이메일 모두 같은 이름.<br>
-          · 외부 고객 표기(아트지·포멕스 등 옛 이름)도 매핑 테이블로 인식.
+          · 표시 명칭은 ERP DB 의 통일 명칭으로 — 화면·문서·이메일 모두 동일.<br>
+          · 외부 고객 표기(아트지·포멕스 등 옛 이름)도 ERP DB 매핑 테이블로 인식.
         </div>
       </div>
     </div>
@@ -257,41 +257,41 @@ footer{padding:30px 20px;text-align:center;color:#5a6a85;font-size:12px;border-t
   <div class="phase-inner">
     <div class="num">3</div>
     <div class="label">▍ LONG · 개발팀 검토 후 일정 확정</div>
-    <h2>전 시스템 완전 자동화<br>한 곳 수정 = 다 적용</h2>
-    <p class="lead">상품DB가 엑셀에서 데이터화로 전환. 챗봇 노드 데이터도 가이드 변경에 따라 자동 갱신. 박상준 차장이 손 댈 일 없는 SSOT 완성.</p>
+    <h2>전 시스템 완전 자동화<br>ERP DB 한 곳 수정 = 다 적용</h2>
+    <p class="lead">상품DB가 엑셀에서 ERP DB로 이전. 챗봇 노드 데이터도 ERP DB 명칭 변경에 따라 자동 갱신. ERP DB가 단일 정답 출처(SSOT)가 되어 박상준 차장 손 댈 일 없음.</p>
 
     <div class="cards">
       <div class="card" onclick="this.classList.toggle('expanded')">
         <div class="icon">🗄️</div>
-        <h3>상품DB 데이터화</h3>
+        <h3>상품DB 엑셀 → ERP DB로</h3>
         <p>12개 카테고리 엑셀 파일이 사라지고, 상품DB가 정식 데이터로 ERP 안에 들어감.</p>
         <div class="more">▼ 자세히</div>
         <div class="detail">
-          · 박상준 차장의 엑셀 12개 → ERP 내부 데이터로 이관.<br>
-          · 가이드 도구에서 명칭 변경 → 상품DB 자동 갱신.<br>
+          · 박상준 차장의 엑셀 12개 → ERP 내부 데이터로 영구 이관.<br>
+          · ERP DB에서 명칭 변경 → 상품DB 자동 갱신.<br>
           · 홍재이 주임이 손으로 1,061건 바꾸는 일 영구히 없어짐.
         </div>
       </div>
       <div class="card" onclick="this.classList.toggle('expanded')">
         <div class="icon">💬</div>
         <h3>챗봇 노드 자동 갱신</h3>
-        <p>가이드 변경 → 챗봇이 답하는 자재·공정 이름도 자동으로 따라옴. 동의어 사전도 자동 확장.</p>
+        <p>ERP DB 명칭 변경 → 챗봇이 답하는 자재·공정 이름도 자동으로 따라옴. 동의어 사전도 자동 확장.</p>
         <div class="more">▼ 자세히</div>
         <div class="detail">
-          · 가이드 confirmed 변경 → 챗봇 노드 데이터 자동 재생성.<br>
-          · 옛 이름(포멕스·아트지 등 고객 표현)은 동의어 사전에 영구 보존.<br>
+          · ERP DB 명칭 변경 → 챗봇 노드 데이터 자동 재생성.<br>
+          · 옛 이름(포멕스·아트지 등 고객 표현)은 ERP DB 매핑에 영구 보존.<br>
           · 새 이름은 표시·응답에 사용.<br>
           · 신규 상담 플랫폼(해피톡 대체) 도입 시 동일 흐름 유지.
         </div>
       </div>
       <div class="card" onclick="this.classList.toggle('expanded')">
         <div class="icon">✨</div>
-        <h3>한 곳 수정 = 다 적용</h3>
-        <p>가이드 도구에서 명칭 한 번 바꾸면 ERP·상품DB·챗봇이 모두 자동. 박상준 차장 손 댈 일 0.</p>
+        <h3>ERP DB 한 곳 수정 = 다 적용</h3>
+        <p>ERP DB에서 명칭 한 번 바꾸면 ERP 화면·상품DB·챗봇이 모두 자동. 박상준 차장 손 댈 일 0.</p>
         <div class="more">▼ 자세히</div>
         <div class="detail">
-          · 진정한 단일 진실 출처(SSOT) 완성.<br>
-          · 신규 자재 등재 → 5명 협의 → 자동 전 시스템 반영.<br>
+          · ERP DB 가 진정한 단일 정답 출처(SSOT) — 회의 도구는 초기 결정 단계 도구로만 역할.<br>
+          · 신규 자재 등재 → ERP 관리 페이지에서 직접 → 자동 전 시스템 반영.<br>
           · 외주비 0원 · 운영 인력 0 추가.
         </div>
       </div>
@@ -303,35 +303,35 @@ footer{padding:30px 20px;text-align:center;color:#5a6a85;font-size:12px;border-t
 <section class="flow-section">
   <div class="flow-inner">
     <h2>최종 데이터 흐름</h2>
-    <p class="lead">한 곳에서 결정 → 모든 시스템이 같은 정답을 봄</p>
+    <p class="lead">회의 도구는 초기 결정용 · ERP DB가 정답 출처가 되면 모든 시스템이 ERP DB만 봄</p>
     <div class="flow-diagram">
       <div class="flow-node source">
         <div class="ico">📘</div>
-        <div class="name">가이드 도구</div>
-        <div class="sub">5명 결정</div>
+        <div class="name">회의 도구</div>
+        <div class="sub">초기 5명 결정<br><span style="opacity:.7">(Firestore 임시)</span></div>
       </div>
-      <div class="flow-arrow">→</div>
+      <div class="flow-arrow">⇨</div>
       <div class="flow-node hub">
         <div class="ico">🗄️</div>
-        <div class="name">규정화 DB</div>
-        <div class="sub">ERP 내부 · 정답 출처</div>
+        <div class="name">ERP DB</div>
+        <div class="sub">정답 출처 (SSOT)<br><span style="opacity:.7">개발팀 구축</span></div>
       </div>
       <div class="flow-arrow">→</div>
       <div class="flow-targets">
         <div class="flow-node target">
           <div class="ico">🖥️</div>
-          <div class="name">ERP</div>
-          <div class="sub">자동 반영</div>
+          <div class="name">ERP 화면</div>
+          <div class="sub">ERP DB 참조</div>
         </div>
         <div class="flow-node target">
           <div class="ico">📋</div>
           <div class="name">상품DB</div>
-          <div class="sub">자동 반영</div>
+          <div class="sub">ERP DB 참조</div>
         </div>
         <div class="flow-node target">
           <div class="ico">💬</div>
           <div class="name">챗봇</div>
-          <div class="sub">자동 반영</div>
+          <div class="sub">ERP DB 참조</div>
         </div>
       </div>
     </div>
