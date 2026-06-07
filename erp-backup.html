@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>ERP 비교본 — DB 백업·복구점</title>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI","Malgun Gothic",sans-serif;max-width:840px;margin:40px auto;padding:0 20px;line-height:1.6;color:#222}
+  h1{font-size:1.5rem;margin-bottom:4px}
+  h2{font-size:1.15rem;margin-top:0}
+  .sub{color:#666;font-size:13px;margin-top:0}
+  .box{border:1px solid #e0e0e0;border-radius:10px;padding:22px;margin:18px 0;background:#fff}
+  button{padding:10px 18px;font-size:14px;border:0;border-radius:6px;cursor:pointer;margin-right:8px;font-weight:600}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .btn-primary{background:#0a7e4f;color:#fff}
+  .btn-danger{background:#c0392b;color:#fff}
+  .log{background:#f7f7f8;padding:14px;border-radius:6px;font-family:Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap;max-height:340px;overflow:auto;margin-top:14px;border:1px solid #eee}
+  .warn{color:#c0392b;font-weight:700}
+  input[type=file]{padding:6px;font-size:13px}
+  code{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px}
+  .meta{font-size:12px;color:#888;margin-top:6px}
+  ul.what{margin:6px 0 0 0;padding-left:20px;font-size:13px;color:#555}
+</style>
+</head>
+<body>
+<h1>ERP 비교본 — DB 백업·복구점</h1>
+<p class="sub">대상: Firestore <code>hanasm-chatbot-terms</code></p>
+
+<div class="box">
+  <h2>1. 백업 (복구점 만들기)</h2>
+  <p>현재 시점의 모든 데이터를 JSON 한 파일로 다운로드합니다. 이 파일이 곧 복구점입니다.</p>
+  <ul class="what">
+    <li>최상위 컬렉션 5개: <code>erp_terminology</code>, <code>erp_term_logs</code>, <code>erp_term_order</code>, <code>erp_missing_status</code>, <code>erp_outsource_check</code></li>
+    <li>비고 서브컬렉션 5섹션: <code>erp_notes/{machine,stage,material,missing,conflict}/entries</code></li>
+  </ul>
+  <br>
+  <button id="btnBackup" class="btn-primary">전체 백업 받기</button>
+  <div id="logBackup" class="log" style="display:none"></div>
+</div>
+
+<div class="box">
+  <h2>2. 복구</h2>
+  <p><span class="warn">주의:</span> 백업 시점 이후 추가·수정·삭제된 모든 데이터가 사라지고, 백업 시점 상태로 완전히 되돌아갑니다. 되돌릴 수 없습니다.</p>
+  <input type="file" id="restoreFile" accept="application/json">
+  <p class="meta">권장: 복구 직전에 「전체 백업 받기」를 한 번 더 눌러 현재 상태도 별도로 저장해두세요.</p>
+  <button id="btnRestore" class="btn-danger">선택한 백업으로 복구하기</button>
+  <div id="logRestore" class="log" style="display:none"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, getDocs, writeBatch, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDLguJj7s8KZa6yAH80w-bOvduc3WR5Oss",
+  authDomain: "hanasm-chatbot-terms.firebaseapp.com",
+  projectId: "hanasm-chatbot-terms",
+  storageBucket: "hanasm-chatbot-terms.firebasestorage.app",
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const TOP_COLS = ['erp_terminology','erp_term_logs','erp_term_order','erp_missing_status','erp_outsource_check'];
+const NOTE_SECTIONS = ['machine','stage','material','missing','conflict'];
+
+function log(target, msg){
+  target.style.display='block';
+  target.textContent += msg + '\n';
+  target.scrollTop = target.scrollHeight;
+}
+
+function serialize(v){
+  if(v===null||v===undefined) return v;
+  if(v instanceof Timestamp) return {__type:'ts', s:v.seconds, n:v.nanoseconds};
+  if(Array.isArray(v)) return v.map(serialize);
+  if(typeof v==='object'){
+    const o={}; for(const [k,x] of Object.entries(v)) o[k]=serialize(x); return o;
+  }
+  return v;
+}
+function deserialize(v){
+  if(v===null||v===undefined) return v;
+  if(typeof v==='object' && v.__type==='ts') return new Timestamp(v.s, v.n);
+  if(Array.isArray(v)) return v.map(deserialize);
+  if(typeof v==='object'){
+    const o={}; for(const [k,x] of Object.entries(v)) o[k]=deserialize(x); return o;
+  }
+  return v;
+}
+
+async function dumpCollection(path){
+  const snap = await getDocs(collection(db, ...path));
+  const out={};
+  snap.forEach(d=>{ out[d.id] = serialize(d.data()); });
+  return {data:out, count:snap.size};
+}
+
+async function batchDelete(path){
+  const snap = await getDocs(collection(db, ...path));
+  const docs = snap.docs;
+  for(let i=0;i<docs.length;i+=400){
+    const b = writeBatch(db);
+    docs.slice(i,i+400).forEach(d=>b.delete(d.ref));
+    await b.commit();
+  }
+  return docs.length;
+}
+async function batchSet(path, data){
+  const entries = Object.entries(data||{});
+  for(let i=0;i<entries.length;i+=400){
+    const b = writeBatch(db);
+    entries.slice(i,i+400).forEach(([id,payload])=>{
+      b.set(doc(db, ...path, id), deserialize(payload));
+    });
+    await b.commit();
+  }
+  return entries.length;
+}
+
+document.getElementById('btnBackup').addEventListener('click', async (e)=>{
+  const btn = e.currentTarget; btn.disabled=true;
+  const lg = document.getElementById('logBackup'); lg.textContent='';
+  log(lg,'[백업 시작] '+new Date().toLocaleString('ko-KR'));
+  const dump = {meta:{createdAt:new Date().toISOString(), projectId:firebaseConfig.projectId, version:1}, collections:{}, notes:{}};
+  try{
+    for(const c of TOP_COLS){
+      const r = await dumpCollection([c]);
+      dump.collections[c] = r.data;
+      log(lg,'  ['+c+'] '+r.count+'건');
+    }
+    for(const s of NOTE_SECTIONS){
+      const r = await dumpCollection(['erp_notes', s, 'entries']);
+      dump.notes[s] = r.data;
+      log(lg,'  [erp_notes/'+s+'/entries] '+r.count+'건');
+    }
+    const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+    const blob = new Blob([JSON.stringify(dump)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'erp-backup-'+ts+'.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    log(lg,'[완료] 다운로드: '+a.download);
+    log(lg,'※ 이 파일을 안전한 곳에 보관하세요. 복구할 때 필요합니다.');
+  }catch(err){
+    log(lg,'[오류] '+(err.message||err));
+  }finally{ btn.disabled=false; }
+});
+
+document.getElementById('btnRestore').addEventListener('click', async (e)=>{
+  const btn = e.currentTarget;
+  const lg = document.getElementById('logRestore'); lg.textContent='';
+  const f = document.getElementById('restoreFile').files[0];
+  if(!f){ alert('백업 JSON 파일을 먼저 선택하세요.'); return; }
+  if(!confirm('정말 복구하시겠습니까?\n현재 DB의 모든 변경분이 사라지고 백업 시점으로 되돌아갑니다.')) return;
+  if(!confirm('마지막 확인입니다.\n이 작업은 되돌릴 수 없습니다. 진행할까요?')) return;
+  btn.disabled=true;
+  log(lg,'[복구 시작] '+new Date().toLocaleString('ko-KR'));
+  try{
+    const dump = JSON.parse(await f.text());
+    if(!dump || !dump.meta){ throw new Error('백업 파일 형식이 올바르지 않습니다.'); }
+    log(lg,'  백업 시점: '+dump.meta.createdAt);
+
+    log(lg,'  --- 1단계: 현재 데이터 삭제 ---');
+    for(const c of TOP_COLS){
+      const n = await batchDelete([c]);
+      log(lg,'   삭제 ['+c+'] '+n+'건');
+    }
+    for(const s of NOTE_SECTIONS){
+      const n = await batchDelete(['erp_notes', s, 'entries']);
+      log(lg,'   삭제 [erp_notes/'+s+'/entries] '+n+'건');
+    }
+
+    log(lg,'  --- 2단계: 백업 데이터 복원 ---');
+    for(const c of TOP_COLS){
+      const n = await batchSet([c], dump.collections[c]);
+      log(lg,'   복원 ['+c+'] '+n+'건');
+    }
+    for(const s of NOTE_SECTIONS){
+      const n = await batchSet(['erp_notes', s, 'entries'], (dump.notes||{})[s]);
+      log(lg,'   복원 [erp_notes/'+s+'/entries] '+n+'건');
+    }
+    log(lg,'[완료] 복구가 끝났습니다. ERP 비교본 페이지를 새로고침하세요.');
+    alert('복구 완료. ERP 비교본 페이지를 새로고침하면 백업 시점 상태가 보입니다.');
+  }catch(err){
+    log(lg,'[오류] '+(err.message||err));
+  }finally{ btn.disabled=false; }
+});
+</script>
+</body>
+</html>
