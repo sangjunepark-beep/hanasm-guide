@@ -1094,7 +1094,11 @@ async function moveRowToSubgroup(tr, group, erp, oldKey, curSub, newSub){
         if(newKey !== oldKey){
           const dupCheck = await getDoc(doc(db, COL, newKey));
           if(dupCheck.exists()){
-            if(!confirm('"'+erp+'" 가 "'+newSub+'" 분류에 이미 있습니다.\n진행하면 데이터가 합쳐집니다(같은 doc 공유).\n그래도 진행할까요?')) return;
+            // [2026-06-08] 충돌 시 사용자 결정 — 확인=합침, 취소=별도 행으로 보존(unique suffix)
+            const wantMerge = confirm('"'+erp+'" 가 "'+newSub+'" 분류에 이미 있습니다.\n\n  확인 = 같은 doc 공유로 합치기\n  취소 = 별도 행으로 보존(자동으로 다른 ID 부여)');
+            if(!wantMerge){
+              newKey = makeUniqueKey('stage::'+newSub+'::'+erp);
+            }
           }
         }
       }
