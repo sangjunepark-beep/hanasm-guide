@@ -756,6 +756,8 @@ function init(){
         try{ applyOrder(x.group, x.subgroup||'', x.order, x.orderKeys); }catch(e){ console.error('applyOrder', e); }
       }
     });
+    // [2026-06-08] applyOrder가 actions-row 동행에 실패해도 자가복원
+    try{ fixOrphanActionsRows(); }catch(e){ console.error('fixOrphan-order', e); }
   }, err=>{ tick('⚠️ 순서동기화실패: '+err.code); });
 
   // 비고 영역
