@@ -971,12 +971,13 @@ function insertCustomRow(table, subgroup, tr){
       if(!sep && s.dataset.subgroup===subgroup) sep = s;
     });
   }
-  if(!sep){ (table.tBodies[0]||table).appendChild(tr); }
-  else {
-    let next = sep.nextElementSibling;
-    while(next && !next.classList.contains('flowsep')) next = next.nextElementSibling;
-    if(next) next.parentNode.insertBefore(tr, next);
-    else (table.tBodies[0]||table).appendChild(tr);
+  // [2026-06-08] 항목 추가는 무조건 맨 위 (subgroup 있으면 flowsep 직후, 없으면 tbody 첫 자리)
+  if(!sep){
+    const tbody = table.tBodies[0]||table;
+    if(tbody.firstChild) tbody.insertBefore(tr, tbody.firstChild);
+    else tbody.appendChild(tr);
+  } else {
+    sep.parentNode.insertBefore(tr, sep.nextElementSibling);
   }
   // actions-row 같이 추가
   const inp = tr.querySelector('input.dec.final');
