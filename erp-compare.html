@@ -706,6 +706,8 @@ function init(){
     // 신규 행 렌더 후 저장된 순서 재적용 (소구분 순서 → 행 순서 차례로)
     try{ Object.keys(_subOrderCache).forEach(g=>applySubgroupOrder(g, _subOrderCache[g])); }catch(e){ console.error('reorder-sub v2', e); }
     try{ Object.values(_orderCache).forEach(x=>applyOrder(x.group, x.subgroup||'', x.order, x.orderKeys)); }catch(e){ console.error('reorder v2', e); }
+    // [2026-06-08] 매 snapshot 끝에 actions-row 강제 정렬 — 본체와 분리된 actions-row 자동 복구
+    try{ fixOrphanActionsRows(); }catch(e){ console.error('fixOrphan', e); }
     // P1: 승인/사유/반영 상태 적용
     try{ Object.keys(m).forEach(k=>applyMetaActionsForDoc(k, m[k])); }catch(e){ console.error('meta-actions v5', e); }
     let drafts=0, finals=0; const _counted=new Set();
@@ -1241,6 +1243,25 @@ function getRowErp(tr){
 }
 // [2026-06-08] 행마다 unique한 doc id (unique suffix 포함) 반환 — 순서 저장·복원의 기준
 function getRowKey(tr){ return (tr && tr.dataset) ? (tr.dataset.rowKey||'') : ''; }
+// [2026-06-08] actions-row가 본체 행에서 떨어졌을 때 자동 재부착 — applyOrder 등에서 ar를 못 챙긴 누적 깨짐 자가복원
+function fixOrphanActionsRows(){
+  document.querySelectorAll('tr.actions-row').forEach(ar=>{
+    const rk = ar.dataset.rowKey || '';
+    if(!rk) return;
+    const escK = rk.replace(/"/g,'\\"');
+    // 본체 행: actions-row 아닌, 같은 rowKey 행
+    const body = document.querySelector('tr:not(.actions-row)[data-row-key="'+escK+'"]');
+    if(!body){
+      // 본체 없는 actions-row는 제거 (좀비)
+      if(ar.parentNode) ar.parentNode.removeChild(ar);
+      return;
+    }
+    // 본체 바로 다음에 자기 actions-row가 없으면 그 자리로 이동
+    if(body.nextElementSibling !== ar){
+      body.parentNode.insertBefore(ar, body.nextElementSibling);
+    }
+  });
+}
 function findSepForSubgroup(table, subgroup){
   let found = null;
   table.querySelectorAll('tr.flowsep').forEach(s=>{ if(!found && s.dataset.subgroup===subgroup) found = s; });
@@ -1292,7 +1313,12 @@ function makeRowDraggable(tr){
     clearDropMarkers();
     const grp = getRowGroup(tr), sub = getRowSubgroup(tr);
     // src 의 actions-row 도 같이 이동
-    const srcAr = _dragSrc.nextElementSibling && _dragSrc.nextElementSibling.classList && _dragSrc.nextElementSibling.classList.contains('actions-row') ? _dragSrc.nextElementSibling : null;
+    // [2026-06-08] _dragSrc 바로 뒤가 actions-row가 아니면, 같은 rowKey의 actions-row를 표 안에서 찾아옴
+    let srcAr = _dragSrc.nextElementSibling && _dragSrc.nextElementSibling.classList && _dragSrc.nextElementSibling.classList.contains('actions-row') ? _dragSrc.nextElementSibling : null;
+    if(!srcAr){
+      const rk = getRowKey(_dragSrc);
+      if(rk) srcAr = document.querySelector('tr.actions-row[data-row-key="'+rk.replace(/"/g,'\\"')+'"]');
+    }
     // 타겟 위치 결정 — 타겟의 actions-row 다음으로 (after) 또는 타겟 앞 (before)
     const tgtAr = tr.nextElementSibling && tr.nextElementSibling.classList && tr.nextElementSibling.classList.contains('actions-row') ? tr.nextElementSibling : null;
     if(after){
@@ -1382,7 +1408,12 @@ function applyOrder(group, subgroup, order, orderKeys){
     const key = useKeys ? orderKeys[i] : '';
     const row = (key && byKey[key]) ? byKey[key] : byErp[erp];
     if(row){
-      const ar = row.nextElementSibling && row.nextElementSibling.classList && row.nextElementSibling.classList.contains('actions-row') ? row.nextElementSibling : null;
+      // [2026-06-08] row 바로 뒤가 actions-row가 아니면 같은 rowKey의 actions-row를 표 안에서 찾아옴
+      let ar = row.nextElementSibling && row.nextElementSibling.classList && row.nextElementSibling.classList.contains('actions-row') ? row.nextElementSibling : null;
+      if(!ar){
+        const rk = getRowKey(row);
+        if(rk) ar = table.querySelector('tr.actions-row[data-row-key="'+rk.replace(/"/g,'\\"')+'"]');
+      }
       if(nextSep){
         nextSep.parentNode.insertBefore(row, nextSep);
         if(ar) nextSep.parentNode.insertBefore(ar, nextSep);
