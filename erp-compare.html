@@ -751,7 +751,7 @@ function init(){
         try{ applySubgroupOrder(x.group, x.order); }catch(e){ console.error('applySubgroupOrder', e); }
       } else {
         _orderCache[d.id] = x;
-        try{ applyOrder(x.group, x.subgroup||'', x.order); }catch(e){ console.error('applyOrder', e); }
+        try{ applyOrder(x.group, x.subgroup||'', x.order, x.orderKeys); }catch(e){ console.error('applyOrder', e); }
       }
     });
   }, err=>{ tick('⚠️ 순서동기화실패: '+err.code); });
@@ -1104,7 +1104,7 @@ async function deleteTerm(group, erp, tr){
       if(t.dataset && t.dataset.rowKey === key) toRemove.push(t);
     });
     toRemove.forEach(t=>{ if(t.parentNode) t.parentNode.removeChild(t); });
-    try{ await removeFromOrder(group, sub, erp); }catch(_){}
+    try{ await removeFromOrder(group, sub, erp, key); }catch(_){}
     tick('🗑️ 신규 항목 삭제: '+erp+(toRemove.length>2 ? ' (중복 '+(Math.floor(toRemove.length/2))+'행 같이 정리)' : ''));
   }catch(e){ tick('⚠️ 삭제실패: '+(e.code||e.message)); console.error(e); }
   finally{
@@ -1201,7 +1201,7 @@ async function editTerm(group, erp, tr){
       if(allCopies.length) merged.copies = allCopies;
       await setDoc(doc(db, COL, newKey), merged);
       await deleteDoc(doc(db, COL, oldKey));
-      try{ await renameInOrder(group, sub, erp, newErp); }catch(_){}
+      try{ await renameInOrder(group, sub, erp, newErp, oldKey, newKey); }catch(_){}
     } else {
       const payload = { mp:newMp, updatedAt: serverTimestamp(), updatedBy: getEditor() };
       if(curDraft) payload.draft = curDraft;
@@ -1236,6 +1236,8 @@ function getRowErp(tr){
   const inp = tr.querySelector('input.dec');
   return inp ? inp.dataset.erp : '';
 }
+// [2026-06-08] 행마다 unique한 doc id (unique suffix 포함) 반환 — 순서 저장·복원의 기준
+function getRowKey(tr){ return (tr && tr.dataset) ? (tr.dataset.rowKey||'') : ''; }
 function findSepForSubgroup(table, subgroup){
   let found = null;
   table.querySelectorAll('tr.flowsep').forEach(s=>{ if(!found && s.dataset.subgroup===subgroup) found = s; });
@@ -1327,10 +1329,11 @@ async function persistOrder(group, subgroup){
   const sep = findSepForSubgroup(table, subgroup);
   if(!sep) return;
   const erps = [];
+  const keys = []; // [2026-06-08] rowKey 배열 같이 저장 — "없음" 등 같은 erp명이 여러 행일 때 식별
   let cur = sep.nextElementSibling;
   while(cur && !cur.classList.contains('flowsep')){
     const erp = getRowErp(cur);
-    if(erp) erps.push(erp);
+    if(erp){ erps.push(erp); keys.push(getRowKey(cur)||''); }
     cur = cur.nextElementSibling;
   }
   const docKey = group+'::'+(subgroup||'');
@@ -1339,7 +1342,7 @@ async function persistOrder(group, subgroup){
   const prevSnap = await getDoc(ref);
   const beforeOrder = prevSnap.exists() ? (prevSnap.data().order||[]) : [];
   await setDoc(ref, {
-    group, subgroup:subgroup||'', order:erps, updatedAt: serverTimestamp(), updatedBy: getEditor()
+    group, subgroup:subgroup||'', order:erps, orderKeys:keys, updatedAt: serverTimestamp(), updatedBy: getEditor()
   });
   await addDoc(collection(db,'erp_term_logs'), {
     key:docKey, group, subgroup:subgroup||'', field:'(순서변경)',
@@ -1349,7 +1352,8 @@ async function persistOrder(group, subgroup){
   });
   tick('🔀 순서 저장: '+(subgroup||'전체')+' ('+erps.length+'개)');
 }
-function applyOrder(group, subgroup, order){
+// [2026-06-08] order(erp 배열) + orderKeys(rowKey 배열) 둘 다 받음. rowKey 매칭 우선, erp 폴백(legacy)
+function applyOrder(group, subgroup, order, orderKeys){
   const table = document.querySelector('table[data-group="'+group+'"]');
   if(!table || !Array.isArray(order)) return;
   const sep = findSepForSubgroup(table, subgroup);
@@ -1357,17 +1361,23 @@ function applyOrder(group, subgroup, order){
   // 다음 flowsep (또는 끝)
   let nextSep = sep.nextElementSibling;
   while(nextSep && !nextSep.classList.contains('flowsep')) nextSep = nextSep.nextElementSibling;
-  // 현재 소구분 내 행들 ERP 이름 → tr 매핑
-  const rows = {};
+  // 현재 소구분 내 행 매핑: rowKey 우선, erp 폴백 (같은 erp가 여러 개면 첫 매칭 유지)
+  const byKey = {};
+  const byErp = {};
   let cur = sep.nextElementSibling;
   while(cur && cur!==nextSep){
-    const erp = getRowErp(cur);
-    if(erp) rows[erp] = cur;
+    const k = getRowKey(cur);
+    const e = getRowErp(cur);
+    if(k) byKey[k] = cur;
+    if(e && !(e in byErp)) byErp[e] = cur;
     cur = cur.nextElementSibling;
   }
+  const useKeys = Array.isArray(orderKeys) && orderKeys.length === order.length;
   // 저장된 순서대로 nextSep 직전에 재삽입 — actions-row 도 같이
-  order.forEach(erp=>{
-    const row = rows[erp];
+  for(let i=0; i<order.length; i++){
+    const erp = order[i];
+    const key = useKeys ? orderKeys[i] : '';
+    const row = (key && byKey[key]) ? byKey[key] : byErp[erp];
     if(row){
       const ar = row.nextElementSibling && row.nextElementSibling.classList && row.nextElementSibling.classList.contains('actions-row') ? row.nextElementSibling : null;
       if(nextSep){
@@ -1378,26 +1388,57 @@ function applyOrder(group, subgroup, order){
         tbody.appendChild(row);
         if(ar) tbody.appendChild(ar);
       }
-      delete rows[erp];
+      // 사용된 행은 후속 매칭에서 제거 (같은 erp 중복 시 같은 행이 두 번 잡히는 사고 방지)
+      const rk = getRowKey(row); if(rk) delete byKey[rk];
+      const re = getRowErp(row); if(re && byErp[re]===row) delete byErp[re];
     }
-  });
+  }
   // 저장 순서에 없는 행은 그 뒤에 자연스럽게 남음 (이미 그 위치)
 }
-async function removeFromOrder(group, subgroup, erp){
+// [2026-06-08] key 인자 추가 — key 주면 key 기준 제거 (같은 erp가 여러 개여도 정확히 1행만), 없으면 erp 기준 (legacy)
+async function removeFromOrder(group, subgroup, erp, key){
   const docKey = group+'::'+(subgroup||'');
   const ref = doc(db,'erp_term_order', docKey);
   const snap = await getDoc(ref);
   if(!snap.exists()) return;
-  const order = (snap.data().order||[]).filter(x=>x!==erp);
-  await setDoc(ref, { group, subgroup:subgroup||'', order, updatedAt: serverTimestamp(), updatedBy: getEditor() });
+  const d = snap.data();
+  const oldOrder = d.order||[];
+  const oldKeys = d.orderKeys||[];
+  const hasKeys = Array.isArray(oldKeys) && oldKeys.length === oldOrder.length;
+  const newOrder = [];
+  const newKeys = [];
+  for(let i=0; i<oldOrder.length; i++){
+    const e = oldOrder[i];
+    const k = hasKeys ? oldKeys[i] : '';
+    const matched = key ? (k === key) : (e === erp);
+    if(matched) continue;
+    newOrder.push(e);
+    if(hasKeys) newKeys.push(k);
+  }
+  const payload = { group, subgroup:subgroup||'', order:newOrder, updatedAt: serverTimestamp(), updatedBy: getEditor() };
+  if(hasKeys) payload.orderKeys = newKeys;
+  await setDoc(ref, payload);
 }
-async function renameInOrder(group, subgroup, oldErp, newErp){
+// [2026-06-08] oldKey/newKey 옵션 인자 — 있으면 key 기준으로 정확히 1행만 갱신
+async function renameInOrder(group, subgroup, oldErp, newErp, oldKey, newKey){
   const docKey = group+'::'+(subgroup||'');
   const ref = doc(db,'erp_term_order', docKey);
   const snap = await getDoc(ref);
   if(!snap.exists()) return;
-  const order = (snap.data().order||[]).map(x=>x===oldErp?newErp:x);
-  await setDoc(ref, { group, subgroup:subgroup||'', order, updatedAt: serverTimestamp(), updatedBy: getEditor() });
+  const d = snap.data();
+  const oldOrder = d.order||[];
+  const oldKeys = d.orderKeys||[];
+  const hasKeys = Array.isArray(oldKeys) && oldKeys.length === oldOrder.length;
+  const newOrder = oldOrder.map((e,i)=>{
+    if(oldKey && hasKeys && oldKeys[i]===oldKey) return newErp;
+    if(!oldKey && e===oldErp) return newErp;
+    return e;
+  });
+  const payload = { group, subgroup:subgroup||'', order:newOrder, updatedAt: serverTimestamp(), updatedBy: getEditor() };
+  if(hasKeys){
+    payload.orderKeys = oldKeys.map(k => (oldKey && k===oldKey) ? (newKey||k) : k);
+  }
+  await setDoc(ref, payload);
 }
 
 /* ===== v5 (2026-06-04): P1 — 승인 체크 5칸 + 사유 + 다운스트림 4칸 + CSV 2종 ===== */
@@ -2069,7 +2110,7 @@ async function reverseLog(log){
   }
   else if(log.action==='add-term'){
     await deleteDoc(doc(db, COL, log.key));
-    try{ await removeFromOrder(log.group, log.subgroup||'', log.erp); }catch(_){}
+    try{ await removeFromOrder(log.group, log.subgroup||'', log.erp, log.key); }catch(_){}
     const inp = document.querySelector(keySel(log.key));
     const tr = inp ? inp.closest('tr') : null;
     if(tr){
