@@ -162,6 +162,15 @@
  tr.drop-target-after td{box-shadow:inset 0 -3px 0 0 #2c5b9c;}
  tr.flowsep .drag-handle{color:rgba(0,0,0,.32);}
  tr.flowsep .drag-handle:hover{color:inherit;}
+ /* [2026-06-08] 분류 이동 버튼 — 모든 행 첫 칸에 작게 부착 */
+ .move-row-btn{display:inline-block;margin-left:6px;padding:1px 6px;font-size:10.5px;line-height:1.4;background:#eef2fb;border:1px solid #9cb0d6;border-radius:3px;color:#1f3a5f;cursor:pointer;vertical-align:middle;font-weight:600;}
+ .move-row-btn:hover{background:#cfdcf2;}
+ .move-menu{position:absolute;background:#fff;border:1px solid #888;border-radius:6px;padding:6px;box-shadow:0 4px 14px rgba(0,0,0,.18);z-index:9998;max-height:320px;overflow:auto;font-size:12.5px;min-width:240px;}
+ .move-menu .mm-title{font-weight:700;font-size:11px;color:#666;padding:4px 6px 6px;border-bottom:1px solid #eee;margin-bottom:4px;}
+ .move-menu button{display:block;width:100%;text-align:left;padding:6px 8px;background:none;border:0;font-size:12.5px;cursor:pointer;border-radius:4px;color:#222;}
+ .move-menu button:hover{background:#eef2fb;color:#1f3a5f;}
+ .move-menu .mm-current{color:#aaa;cursor:default;}
+ .move-menu .mm-current:hover{background:none;color:#aaa;}
  /* P1: 승인 / 사유 / 다운스트림 반영 */
  /* row-actions 는 데이터 행 다음의 별도 행(actions-row) 안에 들어감 — 표 전체 폭 활용 */
  tr.actions-row td{background:rgba(247,250,253,.55);padding:6px 11px 8px;border-top:0;}
@@ -634,7 +643,7 @@ let _inited=false;
 function init(){
   if(_inited) return;   // 중복 실행 방지 (DOMContentLoaded + readyState 이중 호출 → 비고 2번 저장 버그)
   _inited=true;
-  try{ layoutSections(); addRowBtns(); rewriteStageKeysBySubgroup(); injectDragHandles(); injectRowActions(); injectCopyButtons(); }catch(e){ console.error('layout v2', e); }
+  try{ layoutSections(); addRowBtns(); rewriteStageKeysBySubgroup(); injectDragHandles(); injectRowActions(); injectCopyButtons(); injectMoveButtons(); }catch(e){ console.error('layout v2', e); }
   try{ initOutsourceTable(); }catch(e){ console.error('outsource', e); }
   try{ initMissingTable(); }catch(e){ console.error('missing', e); }
   // 모달 버튼 핸들러
@@ -709,6 +718,8 @@ function init(){
     try{ Object.values(_orderCache).forEach(x=>applyOrder(x.group, x.subgroup||'', x.order, x.orderKeys)); }catch(e){ console.error('reorder v2', e); }
     // [2026-06-08] 매 snapshot 끝에 actions-row 강제 정렬 — 본체와 분리된 actions-row 자동 복구
     try{ fixOrphanActionsRows(); }catch(e){ console.error('fixOrphan', e); }
+    // [2026-06-08] 새로 그려진 행에도 분류 이동 버튼 부착
+    try{ injectMoveButtons(); }catch(e){ console.error('injectMove', e); }
     // P1: 승인/사유/반영 상태 적용
     try{ Object.keys(m).forEach(k=>applyMetaActionsForDoc(k, m[k])); }catch(e){ console.error('meta-actions v5', e); }
     let drafts=0, finals=0; const _counted=new Set();
@@ -983,6 +994,154 @@ function insertCustomRow(table, subgroup, tr){
   // actions-row 같이 추가
   const inp = tr.querySelector('input.dec.final');
   if(inp) appendActionsRow(tr, inp.dataset.key, inp.dataset.group, inp.dataset.erp, tr.classList.contains('custom-row'));
+}
+
+// [2026-06-08] 분류 이동 — 모든 행 첫 칸에 ↔ 작은 버튼 부착
+function injectMoveButtons(){
+  document.querySelectorAll('tr').forEach(tr=>{
+    if(tr.classList.contains('flowsep')) return;
+    if(tr.classList.contains('actions-row')) return;
+    if(tr.dataset.moveBtn === '1') return;
+    const inp = tr.querySelector('input.dec');
+    if(!inp) return;
+    const group = inp.dataset.group;
+    if(!group || !GROUP_LABEL[group]) return;
+    const firstTd = tr.querySelector('td');
+    if(!firstTd) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'move-row-btn';
+    btn.textContent = '↔ 분류';
+    btn.title = '이 행을 다른 분류(소구분)로 이동';
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      e.preventDefault();
+      if(!ensureEditor(inp)) return;
+      const key = inp.dataset.key;
+      const erp = inp.dataset.erp;
+      const curSub = tr.dataset.subgroup || getRowSubgroup(tr) || '';
+      openMoveMenu(btn, group, curSub, (newSub)=>{
+        moveRowToSubgroup(tr, group, erp, key, curSub, newSub);
+      });
+    });
+    firstTd.appendChild(btn);
+    tr.dataset.moveBtn = '1';
+  });
+}
+
+function openMoveMenu(anchor, group, currentSub, onSelect){
+  document.querySelectorAll('.move-menu').forEach(m=>m.remove());
+  const table = document.querySelector('table[data-group="'+group+'"]');
+  if(!table) return;
+  const subs = Array.from(table.querySelectorAll('tr.flowsep')).map(s=>s.dataset.subgroup||'').filter(s=>s);
+  const menu = document.createElement('div');
+  menu.className = 'move-menu';
+  const title = document.createElement('div');
+  title.className = 'mm-title';
+  title.textContent = '분류 이동 — 현재: '+(currentSub||'(없음)');
+  menu.appendChild(title);
+  subs.forEach(sub=>{
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = sub;
+    if(sub === currentSub){
+      btn.className = 'mm-current';
+      btn.textContent = '✓ '+sub+' (현재)';
+    } else {
+      btn.addEventListener('click', e=>{
+        e.stopPropagation();
+        menu.remove();
+        onSelect(sub);
+      });
+    }
+    menu.appendChild(btn);
+  });
+  document.body.appendChild(menu);
+  const rect = anchor.getBoundingClientRect();
+  let left = rect.left + window.scrollX;
+  let top = rect.bottom + window.scrollY + 4;
+  // 우측 화면 밖이면 왼쪽 정렬
+  const menuW = menu.offsetWidth || 240;
+  if(left + menuW > window.scrollX + window.innerWidth - 10){
+    left = window.scrollX + window.innerWidth - menuW - 10;
+  }
+  menu.style.left = left + 'px';
+  menu.style.top  = top  + 'px';
+  const closer = (ev)=>{
+    if(!menu.contains(ev.target) && ev.target !== anchor){
+      menu.remove();
+      document.removeEventListener('click', closer, true);
+    }
+  };
+  setTimeout(()=>document.addEventListener('click', closer, true), 0);
+}
+
+async function moveRowToSubgroup(tr, group, erp, oldKey, curSub, newSub){
+  if(!getEditor()){ openEditorModal(); return; }
+  if(newSub === curSub) return;
+  const table = tr.closest('table');
+  if(!table) return;
+  const newSep = Array.from(table.querySelectorAll('tr.flowsep')).find(s=>s.dataset.subgroup===newSub);
+  if(!newSep){ tick('⚠️ 대상 분류를 찾지 못했습니다: '+newSub); return; }
+  try{
+    let newKey = oldKey;
+    if(group === 'stage'){
+      // stage 그룹은 doc id에 subgroup 들어감 → 새 키 만들고 데이터 이주
+      if(isDupAllowed(erp)){
+        newKey = makeUniqueKey('stage::'+newSub+'::'+erp);
+      } else {
+        newKey = 'stage::'+newSub+'::'+erp;
+        if(newKey !== oldKey){
+          const dupCheck = await getDoc(doc(db, COL, newKey));
+          if(dupCheck.exists()){
+            if(!confirm('"'+erp+'" 가 "'+newSub+'" 분류에 이미 있습니다.\n진행하면 데이터가 합쳐집니다(같은 doc 공유).\n그래도 진행할까요?')) return;
+          }
+        }
+      }
+      if(newKey !== oldKey){
+        const oldSnap = await getDoc(doc(db, COL, oldKey));
+        const oldData = oldSnap.exists() ? oldSnap.data() : { group:'stage', erp };
+        const newSnap = await getDoc(doc(db, COL, newKey));
+        const newExisting = newSnap.exists() ? newSnap.data() : {};
+        const merged = Object.assign({}, oldData, newExisting, {
+          group:'stage', erp, subgroup:newSub,
+          updatedAt: serverTimestamp(), updatedBy: getEditor()
+        });
+        _pendingDeletes.add(oldKey);
+        await setDoc(doc(db, COL, newKey), merged);
+        await deleteDoc(doc(db, COL, oldKey));
+        setTimeout(()=>_pendingDeletes.delete(oldKey), 1500);
+      } else {
+        // 같은 키 (subgroup만 메타로 갱신)
+        await setDoc(doc(db, COL, oldKey), { subgroup:newSub, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+      }
+    } else {
+      // material / machine: doc id 그대로, subgroup 필드만 갱신
+      await setDoc(doc(db, COL, oldKey), { group, erp, subgroup:newSub, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+    }
+
+    // DOM 이동 (낙관적 — snapshot 와도 keySel 매칭으로 유지)
+    const ar = tr.nextElementSibling && tr.nextElementSibling.classList && tr.nextElementSibling.classList.contains('actions-row') ? tr.nextElementSibling : null;
+    tr.dataset.subgroup = newSub;
+    if(newKey !== oldKey){
+      tr.dataset.rowKey = newKey;
+      tr.querySelectorAll('input.dec').forEach(inp=>{ inp.dataset.key = newKey; });
+      tr.querySelectorAll('.meta[data-meta-key]').forEach(m=>{ m.dataset.metaKey = newKey; });
+      if(ar){ ar.dataset.rowKey = newKey; }
+    }
+    newSep.parentNode.insertBefore(tr, newSep.nextElementSibling);
+    if(ar) newSep.parentNode.insertBefore(ar, tr.nextElementSibling);
+
+    // 옛 subgroup 순서 배열에서도 제거
+    try{ await removeFromOrder(group, curSub, erp, oldKey); }catch(_){}
+
+    await addDoc(collection(db,'erp_term_logs'), {
+      key:newKey, group, erp, subgroup:newSub,
+      field:'(분류이동)', before:curSub, after:newSub,
+      oldKey, action:'move-subgroup', editor:getEditor(), ts: serverTimestamp()
+    });
+    tick('↔ 분류 이동: '+erp+' → '+newSub);
+  }catch(e){ tick('⚠️ 이동실패: '+(e.code||e.message)); console.error(e); }
 }
 
 function wireInput(inp){
