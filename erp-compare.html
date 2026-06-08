@@ -705,7 +705,7 @@ function init(){
     try{ Object.keys(m).forEach(k=>renderCopies(k, m[k])); }catch(e){ console.error('copies v6', e); }
     // 신규 행 렌더 후 저장된 순서 재적용 (소구분 순서 → 행 순서 차례로)
     try{ Object.keys(_subOrderCache).forEach(g=>applySubgroupOrder(g, _subOrderCache[g])); }catch(e){ console.error('reorder-sub v2', e); }
-    try{ Object.values(_orderCache).forEach(x=>applyOrder(x.group, x.subgroup||'', x.order)); }catch(e){ console.error('reorder v2', e); }
+    try{ Object.values(_orderCache).forEach(x=>applyOrder(x.group, x.subgroup||'', x.order, x.orderKeys)); }catch(e){ console.error('reorder v2', e); }
     // P1: 승인/사유/반영 상태 적용
     try{ Object.keys(m).forEach(k=>applyMetaActionsForDoc(k, m[k])); }catch(e){ console.error('meta-actions v5', e); }
     let drafts=0, finals=0; const _counted=new Set();
@@ -936,6 +936,8 @@ function rewriteStageKeysBySubgroup(){
     inps.forEach(inp=>{
       const erp = inp.dataset.erp;
       if(!erp) return;
+      // [2026-06-08] 이미 unique suffix("__" 포함) 키가 박혀있으면 보존 — 마이그레이션 대상은 옛 짧은 키뿐
+      if(inp.dataset.key && inp.dataset.key.includes('__')) return;
       const newKey = 'stage::'+curSub+'::'+erp;
       if(inp.dataset.key !== newKey){ inp.dataset.key = newKey; changed = true; }
       const field = inp.dataset.field;
@@ -947,7 +949,8 @@ function rewriteStageKeysBySubgroup(){
       const firstErp = inps[0]?.dataset?.erp;
       if(firstErp){
         const newRowKey = 'stage::'+curSub+'::'+firstErp;
-        if(tr.dataset.rowKey && tr.dataset.rowKey.startsWith('stage::') && tr.dataset.rowKey.split('::').length === 2){
+        // [2026-06-08] unique suffix("__" 포함) 키는 마이그레이션 제외 — 새 doc id가 의도된 것이므로 보존
+        if(tr.dataset.rowKey && tr.dataset.rowKey.startsWith('stage::') && tr.dataset.rowKey.split('::').length === 2 && !tr.dataset.rowKey.includes('__')){
           tr.dataset.rowKey = newRowKey;
         } else if(!tr.dataset.rowKey){
           tr.dataset.rowKey = newRowKey;
@@ -2234,7 +2237,8 @@ function renderOrphanRows(m){
     const table = document.querySelector('table[data-group="'+d.group+'"]');
     if(!table) return;
     const sub = d.subgroup||'';
-    insertCustomRow(table, sub, buildTermRow(d.group, d.erp||String(key).split('::')[1]||key, d.mp||'', true, sub));
+    // [2026-06-08] doc id(unique suffix 포함)를 keyOverride로 그대로 전달 — data-key가 doc id와 일치해야 saveCell·delete가 정확
+    insertCustomRow(table, sub, buildTermRow(d.group, d.erp||String(key).split('::')[1]||key, d.mp||'', true, sub, key));
   });
 }
 
