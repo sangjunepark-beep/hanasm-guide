@@ -578,39 +578,48 @@ function makeUniqueKey(baseKey){
 
 // 디바운스 저장 (필드 단위: draft 또는 final)
 const timers = {};
+// [2026-06-10] saveCell 실제 저장 로직 분리 → blur·beforeunload 에서 즉시 flush 가능
+async function doSave(key, field, group, erp, value){
+  if(!getEditor()){ openEditorModal(); return; }
+  try{
+    const ref = doc(db, COL, key);
+    const editor = getEditor();
+    const inputEl = document.querySelector(`input.dec[data-key="${key}"][data-field="${field}"]`);
+    const mp = inputEl?.dataset.mp || '';
+    const before = lastSnap[key]?.[field] || '';
+    const after = value.trim();
+    if(before === after) return;  // 같으면 저장 안 함
+    const payload = { group, erp, mp, updatedAt: serverTimestamp(), updatedBy: editor };
+    if(after===''){
+      payload[field] = deleteField();
+      payload[field+'_by'] = deleteField();
+      payload[field+'_at'] = deleteField();
+    } else {
+      payload[field] = after;
+      payload[field+'_by'] = editor;
+      payload[field+'_at'] = serverTimestamp();
+    }
+    await setDoc(ref, payload, {merge:true});
+    await addDoc(collection(db, 'erp_term_logs'), {
+      key, group, erp, field, before, after,
+      action: after==='' ? 'delete' : (before==='' ? 'create' : 'update'),
+      editor, ts: serverTimestamp()
+    });
+    if(inputEl) inputEl.dataset.saved = '1';
+    tick('☁️ 저장됨 ('+editor+')');
+  }catch(e){ tick('⚠️ 저장실패: '+e.code); console.error(e); }
+}
 function saveCell(key, field, group, erp, value){
   if(!getEditor()){ openEditorModal(); return; }
   const t = key + '::' + field;
   clearTimeout(timers[t]);
-  timers[t] = setTimeout(async ()=>{
-    try{
-      const ref = doc(db, COL, key);
-      const editor = getEditor();
-      const inputEl = document.querySelector(`input.dec[data-key="${key}"][data-field="${field}"]`);
-      const mp = inputEl?.dataset.mp || '';
-      const before = lastSnap[key]?.[field] || '';
-      const after = value.trim();
-      if(before === after) return;  // 같으면 저장 안 함
-      const payload = { group, erp, mp, updatedAt: serverTimestamp(), updatedBy: editor };
-      if(after===''){
-        payload[field] = deleteField();
-        payload[field+'_by'] = deleteField();
-        payload[field+'_at'] = deleteField();
-      } else {
-        payload[field] = after;
-        payload[field+'_by'] = editor;
-        payload[field+'_at'] = serverTimestamp();
-      }
-      await setDoc(ref, payload, {merge:true});
-      // 변경 로그 별도 컬렉션에 추가
-      await addDoc(collection(db, 'erp_term_logs'), {
-        key, group, erp, field, before, after,
-        action: after==='' ? 'delete' : (before==='' ? 'create' : 'update'),
-        editor, ts: serverTimestamp()
-      });
-      tick('☁️ 저장됨 ('+editor+')');
-    }catch(e){ tick('⚠️ 저장실패: '+e.code); console.error(e); }
-  }, 2000);
+  timers[t] = setTimeout(()=>{ delete timers[t]; doSave(key, field, group, erp, value); }, 2000);
+}
+// 즉시 저장 (blur, beforeunload 용 - debounce 무시)
+function flushSave(key, field, group, erp, value){
+  const t = key + '::' + field;
+  if(timers[t]){ clearTimeout(timers[t]); delete timers[t]; }
+  return doSave(key, field, group, erp, value);
 }
 
 function fmtDate(ts){
@@ -680,6 +689,11 @@ function init(){
     i.addEventListener('input', ()=>{
       if(i.dataset.composing==='1') return;
       saveCell(i.dataset.key, i.dataset.field, i.dataset.group, i.dataset.erp, i.value);
+    });
+    // [2026-06-10] blur 시 즉시 저장 — debounce 2초 안에 사용자가 다른 칸 클릭 후 새로고침해도 손실 방지
+    i.addEventListener('blur', ()=>{
+      if(i.dataset.composing==='1') return;
+      flushSave(i.dataset.key, i.dataset.field, i.dataset.group, i.dataset.erp, i.value);
     });
   });
 
@@ -1162,6 +1176,11 @@ function wireInput(inp){
   inp.addEventListener('input', ()=>{
     if(inp.dataset.composing==='1') return;
     saveCell(inp.dataset.key, inp.dataset.field, inp.dataset.group, inp.dataset.erp, inp.value);
+  });
+  // [2026-06-10] blur 즉시 저장
+  inp.addEventListener('blur', ()=>{
+    if(inp.dataset.composing==='1') return;
+    flushSave(inp.dataset.key, inp.dataset.field, inp.dataset.group, inp.dataset.erp, inp.value);
   });
 }
 function keySel(key){ return 'input.dec[data-key="'+String(key).replace(/"/g,'\\"')+'"]'; }
@@ -2864,17 +2883,23 @@ window.findEditorData = async function(editorName){
 };
 
 // [#19] 페이지 닫기 전 debounce 안의 미저장 값 즉시 flush — 마지막 입력 손실 방지
+// [2026-06-10] timer 클리어만 하던 옛 로직 → 모든 dirty input 즉시 flushSave 호출 (best-effort, Firestore SDK 가 fire-and-forget)
 window.addEventListener('beforeunload', (e)=>{
   let dirty = false;
-  Object.keys(timers).forEach(t=>{
-    if(timers[t]){ clearTimeout(timers[t]); }
-  });
-  // 미저장 입력이 있는지 확인 (input.dataset.saved !== '1' && value !== '')
   document.querySelectorAll('input.dec').forEach(i=>{
-    if(i.value && i.dataset.saved !== '1'){ dirty = true; }
+    if(i.value && i.dataset.saved !== '1'){
+      dirty = true;
+      try{ flushSave(i.dataset.key, i.dataset.field, i.dataset.group, i.dataset.erp, i.value); }catch(_){}
+    }
+  });
+  // 남은 debounce 타이머도 모두 즉시 발동
+  Object.keys(timers).forEach(t=>{
+    if(timers[t]){
+      const fn = timers[t]; clearTimeout(timers[t]); delete timers[t];
+      // setTimeout 콜백 직접 호출은 불가 — flushSave 가 위에서 이미 처리
+    }
   });
   if(dirty){
-    // 동기적으로 sendBeacon-like 가능하면 좋겠으나 Firestore SDK 는 async — 사용자에게 확인만
     e.preventDefault();
     e.returnValue = '저장 중인 입력이 있습니다. 정말 떠나시겠어요?';
     return e.returnValue;
