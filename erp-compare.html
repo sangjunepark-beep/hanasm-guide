@@ -2854,6 +2854,29 @@ window.restoreLostStage = async function(erpList){
   return results;
 };
 
+// [2026-06-10] 디버그: erp_term_order 컬렉션 dump
+window.dumpOrder = async function(){
+  const snap = await getDocs(collection(db, 'erp_term_order'));
+  const arr = [];
+  snap.forEach(d=>{
+    const x = d.data()||{};
+    arr.push({
+      id: d.id,
+      group: x.group,
+      subgroup: x.subgroup,
+      orderLen: (x.order||[]).length,
+      orderKeysLen: (x.orderKeys||[]).length,
+      sample5: (x.order||[]).slice(0,5),
+      keysSample5: (x.orderKeys||[]).slice(0,5),
+      by: x.updatedBy,
+      at: x.updatedAt?.toDate?.()?.toLocaleString()
+    });
+  });
+  arr.sort((a,b)=>(b.at||'').localeCompare(a.at||''));
+  console.table(arr);
+  return arr;
+};
+
 // [2026-06-10] 디버그: 특정 날짜·편집자의 erp_term_logs 작업 이력 조회
 window.findLogsByDate = async function(editorName, year, month, day){
   const snap = await getDocs(collection(db, 'erp_term_logs'));
