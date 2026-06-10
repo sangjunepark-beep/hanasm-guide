@@ -583,7 +583,14 @@ const timers = {};
 
 // [2026-06-10] 저장 유실 방지 저널 — debounce(2초) 안에 새로고침/창닫기 해도 다음 접속 시 자동 복구
 const PENDING_KEY = 'hanasm_erp_pending_saves';
-function journalGet(){ try{ return JSON.parse(localStorage.getItem(PENDING_KEY)||'{}'); }catch(_){ return {}; } }
+function journalGet(){
+  try{ return JSON.parse(localStorage.getItem(PENDING_KEY)||'{}'); }
+  catch(_){
+    // [2026-06-10] 저널 JSON 손상 시 통째로 버리지 말고 손상본을 백업해 둠 (수동 복구 여지)
+    try{ localStorage.setItem(PENDING_KEY+'_corrupt', localStorage.getItem(PENDING_KEY)||''); }catch(__){}
+    return {};
+  }
+}
 function journalSet(o){ try{ localStorage.setItem(PENDING_KEY, JSON.stringify(o)); }catch(_){} }
 function journalAdd(key, field, group, erp, value){
   const o = journalGet();
@@ -647,7 +654,7 @@ function replayJournal(){
   const o = journalGet();
   const ks = Object.keys(o);
   if(!ks.length) return;
-  const MAX_AGE = 1000*60*60*12;  // 12시간 지난 미저장분은 폐기 (오래된 잔재 복구로 인한 사고 방지)
+  const MAX_AGE = 1000*60*60;  // 1시간 지난 미저장분은 폐기 — 오래된 잔재가 "남이 그 사이 비운 칸"을 되살리는 사고 방지
   let replayed = 0;
   const conflicts = [];
   ks.forEach(jk=>{
@@ -695,6 +702,7 @@ window.addEventListener('beforeunload', ()=>{
   try{
     const o = journalGet();
     document.querySelectorAll('input.dec').forEach(i=>{
+      if(i.dataset.composing==='1') return; // [2026-06-10] 한글 조합 중인 미완성 글자는 저널에 넣지 않음 (정상 입력 경로와 동일 보호)
       const k = i.dataset.key, f = i.dataset.field;
       if(!k || !f) return;
       const last = lastSnap[k]?.[f] || '';
@@ -864,21 +872,24 @@ function init(){
 
   // 행 순서 + 소구분 순서 실시간 구독 (같은 컬렉션 안에서 doc id prefix 로 구분)
   onSnapshot(collection(db,'erp_term_order'), (snap)=>{
+    // [2026-06-10] 드래그 중에는 재배치 안 함 — erp_terminology 구독과 동일 보호. drop 직전 남의 순서변경이 와서 위치가 흔들리는 사고 방지
+    if(_dragSrc) return;
     _orderCache = {};
     _subOrderCache = {};
     snap.forEach(d=>{
       const x = d.data();
       if(!x || !x.group || !Array.isArray(x.order)) return;
+      // [2026-06-10] 캐시는 항상 갱신하되, 행추가/수정 직후(_suppressReorder) DOM 재배치는 보류 — 방금 만든 행이 옮겨지는 사고 방지. suppress 풀린 뒤 erp_terminology 구독이 _orderCache 로 재적용
       if(d.id.startsWith('__sub__::') || x.isSubgroupOrder){
         _subOrderCache[x.group] = x.order;
-        try{ applySubgroupOrder(x.group, x.order); }catch(e){ console.error('applySubgroupOrder', e); }
+        if(!_suppressReorder){ try{ applySubgroupOrder(x.group, x.order); }catch(e){ console.error('applySubgroupOrder', e); } }
       } else {
         _orderCache[d.id] = x;
-        try{ applyOrder(x.group, x.subgroup||'', x.order, x.orderKeys); }catch(e){ console.error('applyOrder', e); }
+        if(!_suppressReorder){ try{ applyOrder(x.group, x.subgroup||'', x.order, x.orderKeys); }catch(e){ console.error('applyOrder', e); } }
       }
     });
     // [2026-06-08] applyOrder가 actions-row 동행에 실패해도 자가복원
-    try{ fixOrphanActionsRows(); }catch(e){ console.error('fixOrphan-order', e); }
+    if(!_suppressReorder){ try{ fixOrphanActionsRows(); }catch(e){ console.error('fixOrphan-order', e); } }
   }, err=>{ tick('⚠️ 순서동기화실패: '+err.code); });
 
   // 비고 영역
