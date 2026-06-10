@@ -2226,12 +2226,14 @@ function injectCopyButtons(){
 // [2026-06-10] 시스템 영문 표기(헤더·분류·상태·반영처)는 국문으로 출력. 제품·장비·재질 기술명(UV·DTF·ZUND 등)은 실제 데이터라 원본 유지.
 window.exportCSVInjection = async function(){
   const snap = await getDocs(collection(db, COL));
+  // [2026-06-10] getDocs(문서 ID 순) 대신 화면 DOM 순서대로 출력 — 작업 상태(드래그·소구분 정렬) 그대로 반영
+  const byId = {};
+  snap.forEach(d=> byId[d.id] = d.data());
   const STATUS_KO = { confirmed:'확정', 'final-draft':'최종초안', 'in-progress':'진행중' };
   // [2026-06-10] 1차 수정안(draft)·최종 협의안(final)을 합치지 말고 각각 별도 컬럼으로 — 입력한 값 그대로 출력
   const rows = [['분류','소분류','ERP명칭','1차 수정안','최종 협의안','상태','확정자','확정일시','사유','반영처']];
-  snap.forEach(d=>{
-    const x = d.data();
-    if(!x.final && !x.draft) return;
+  const pushRow = (x, sub)=>{
+    if(!x || (!x.final && !x.draft)) return;
     const cv = x.confirmed;
     const isConfirmed = !!(cv && cv.by);
     const statusCode = isConfirmed ? 'confirmed' : (x.final ? 'final-draft' : 'in-progress');
@@ -2239,7 +2241,7 @@ window.exportCSVInjection = async function(){
     const dsList = dsOk.map(t => t.short).join('|'); // erp/productdb/chatbot → ERP/상품DB/챗봇
     rows.push([
       GROUP_LABEL[x.group] || x.group || '',  // machine/stage/material → 사용장비/공정/재질
-      x.subgroup||'', x.erp||'',
+      sub || x.subgroup || '', x.erp||'',
       x.draft||'',   // 1차 수정안 — 입력 그대로
       x.final||'',   // 최종 협의안 — 입력 그대로
       STATUS_KO[statusCode] || statusCode,
@@ -2248,6 +2250,29 @@ window.exportCSVInjection = async function(){
       x.rationale||'',
       dsList
     ]);
+  };
+  // 화면에 보이는 표 → 행 순서대로 순회 (machine/stage/material 만; outsource·missing 표는 다른 컬렉션이라 제외)
+  const seen = new Set();
+  document.querySelectorAll('table[data-group]').forEach(table=>{
+    const g = table.dataset.group;
+    if(!GROUP_LABEL[g]) return;
+    let curSub = '';
+    table.querySelectorAll('tr').forEach(tr=>{
+      if(tr.classList.contains('flowsep')){ curSub = tr.dataset.subgroup || ''; return; }
+      if(tr.classList.contains('actions-row')) return;
+      const key = tr.dataset.rowKey;
+      if(!key || seen.has(key)) return;
+      const x = byId[key];
+      if(!x) return; // Firestore 에 아직 doc 이 없는 행(미입력) → 제외
+      seen.add(key);
+      pushRow(x, tr.dataset.subgroup || curSub);
+    });
+  });
+  // 안전망: 화면에 안 그려졌지만 값이 있는 doc(고아 등)은 뒤에 덧붙임 — 유실 방지
+  Object.keys(byId).forEach(id=>{
+    if(seen.has(id)) return;
+    const x = byId[id];
+    if(x && (x.final || x.draft) && GROUP_LABEL[x.group]){ seen.add(id); pushRow(x, x.subgroup||''); }
   });
   if(rows.length===1){ alert('주입할 데이터가 없습니다.'); return; }
   const csv = '﻿' + rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
