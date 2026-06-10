@@ -714,8 +714,11 @@ function init(){
     // 공정 복사 행 동기화 (copies 배열 → DOM)
     try{ Object.keys(m).forEach(k=>renderCopies(k, m[k])); }catch(e){ console.error('copies v6', e); }
     // 신규 행 렌더 후 저장된 순서 재적용 (소구분 순서 → 행 순서 차례로)
-    try{ Object.keys(_subOrderCache).forEach(g=>applySubgroupOrder(g, _subOrderCache[g])); }catch(e){ console.error('reorder-sub v2', e); }
-    try{ Object.values(_orderCache).forEach(x=>applyOrder(x.group, x.subgroup||'', x.order, x.orderKeys)); }catch(e){ console.error('reorder v2', e); }
+    // [2026-06-10] editTerm/promptAddTerm 직후엔 reorder 차단 — 사용자가 방금 만든 행이 의도치 않게 옮겨지는 사고 방지
+    if(!_suppressReorder){
+      try{ Object.keys(_subOrderCache).forEach(g=>applySubgroupOrder(g, _subOrderCache[g])); }catch(e){ console.error('reorder-sub v2', e); }
+      try{ Object.values(_orderCache).forEach(x=>applyOrder(x.group, x.subgroup||'', x.order, x.orderKeys)); }catch(e){ console.error('reorder v2', e); }
+    }
     // [2026-06-08] 매 snapshot 끝에 actions-row 강제 정렬 — 본체와 분리된 actions-row 자동 복구
     try{ fixOrphanActionsRows(); }catch(e){ console.error('fixOrphan', e); }
     // [2026-06-08] 새로 그려진 행에도 분류 이동 버튼 부착
@@ -1226,6 +1229,8 @@ async function promptAddTerm(group, subgroup){
   let mp = (prompt('가이드 표준명 (선택, 없으면 비워두기):','')||'').trim();
   const table = document.querySelector('table[data-group="'+group+'"]');
   if(!table) return;
+  // [2026-06-10] reorder 차단 (신규 행 위치 보존)
+  suppressReorder(2500);
   insertCustomRow(table, subgroup, buildTermRow(group, erp, mp, true, subgroup, key));
   try{
     await setDoc(doc(db, COL, key), { group, erp, mp, subgroup, custom:true, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
@@ -1328,6 +1333,8 @@ async function editTerm(group, erp, tr){
   if(renamed) _pendingDeletes.add(oldKey);
 
   // [2026-06-04] DOM 변경을 Firestore 작업보다 먼저 (낙관적) — setDoc 직후 fire 되는 onSnapshot 의 renderOrphanRows 가 같은 키 중복 행을 추가하는 race condition 막음
+  // [2026-06-10] reorder 차단 (수정 직후 행 위치 보존)
+  suppressReorder(2500);
   const isCustom = tr.classList.contains('custom-row');
   // [2026-06-08] newKey 그대로 전달 (unique suffix 행 보존)
   const newRow = buildTermRow(group, newErp, newMp, isCustom, sub, newKey);
@@ -1395,6 +1402,13 @@ async function editTerm(group, erp, tr){
 /* ===== v3 (2026-06-04): 드래그앤드롭 행 순서 변경 + 신규 항목 수정 ===== */
 let _dragSrc = null;
 let _orderCache = {};
+// [2026-06-10] editTerm/promptAddTerm 직후 짧게 reorder 차단 — 행이 의도치 않게 옮겨지는 사고 방지
+let _suppressReorder = false;
+function suppressReorder(ms){
+  _suppressReorder = true;
+  clearTimeout(window.__suppressReorderTimer);
+  window.__suppressReorderTimer = setTimeout(()=>{ _suppressReorder = false; }, ms || 2500);
+}
 function getRowSubgroup(tr){
   let prev = tr.previousElementSibling;
   while(prev){
