@@ -1085,26 +1085,6 @@ function insertCustomRow(table, subgroup, tr, anchorTr){
   if(inp) appendActionsRow(tr, inp.dataset.key, inp.dataset.group, inp.dataset.erp, tr.classList.contains('custom-row'));
 }
 
-// [2026-06-10] anchor(바로 위 행) 찾기 — rowKey 우선, 같은 소구분 내 erp 폴백
-function findAnchorRow(table, group, subgroup, anchorKey, anchorErp){
-  if(!anchorKey && !anchorErp) return null;
-  if(anchorKey){
-    const escK = String(anchorKey).replace(/"/g,'\\"');
-    const r = table.querySelector('tr:not(.actions-row)[data-row-key="'+escK+'"]');
-    // anchor 행이 같은 소구분에 있을 때만 유효 (분류이동 등으로 떠났으면 erp 폴백/null)
-    if(r && (r.dataset.subgroup || getRowSubgroup(r) || '') === (subgroup||'')) return r;
-  }
-  if(anchorErp){
-    const sel = 'input.dec[data-group="'+group+'"][data-erp="'+String(anchorErp).replace(/"/g,'\\"')+'"]';
-    const inps = table.querySelectorAll(sel);
-    for(const inp of inps){
-      const r = inp.closest('tr');
-      if(r && !r.classList.contains('actions-row') && (r.dataset.subgroup || getRowSubgroup(r) || '') === (subgroup||'')) return r;
-    }
-  }
-  return null;
-}
-
 // [2026-06-08] 분류 이동 — 모든 행 첫 칸에 ↔ 작은 버튼 부착
 function injectMoveButtons(){
   document.querySelectorAll('tr').forEach(tr=>{
@@ -1217,7 +1197,7 @@ async function moveRowToSubgroup(tr, group, erp, oldKey, curSub, newSub){
         const newSnap = await getDoc(doc(db, COL, newKey));
         const newExisting = newSnap.exists() ? newSnap.data() : {};
         const merged = Object.assign({}, oldData, newExisting, {
-          group:'stage', erp, subgroup:newSub, anchorKey:'', anchorErp:'',
+          group:'stage', erp, subgroup:newSub,
           updatedAt: serverTimestamp(), updatedBy: getEditor()
         });
         _pendingDeletes.add(oldKey);
@@ -1225,12 +1205,12 @@ async function moveRowToSubgroup(tr, group, erp, oldKey, curSub, newSub){
         await deleteDoc(doc(db, COL, oldKey));
         setTimeout(()=>_pendingDeletes.delete(oldKey), 1500);
       } else {
-        // 같은 키 (subgroup만 메타로 갱신) — anchor 는 옛 소구분 기준이라 초기화
-        await setDoc(doc(db, COL, oldKey), { subgroup:newSub, anchorKey:'', anchorErp:'', updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+        // 같은 키 (subgroup만 메타로 갱신)
+        await setDoc(doc(db, COL, oldKey), { subgroup:newSub, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
       }
     } else {
-      // material / machine: doc id 그대로, subgroup 필드만 갱신 — anchor 는 옛 소구분 기준이라 초기화
-      await setDoc(doc(db, COL, oldKey), { group, erp, subgroup:newSub, anchorKey:'', anchorErp:'', updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+      // material / machine: doc id 그대로, subgroup 필드만 갱신
+      await setDoc(doc(db, COL, oldKey), { group, erp, subgroup:newSub, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
     }
 
     // DOM 이동 (낙관적 — snapshot 와도 keySel 매칭으로 유지)
@@ -1317,7 +1297,7 @@ function appendActionsRow(mainTr, key, group, erp, custom){
   return actionsTr;
 }
 
-// [2026-06-10] anchorTr 인자 추가 — 행별 "아래 행추가" 버튼에서 호출 시 그 행 아래에 생성 + anchor 영구 저장
+// [2026-06-10] anchorTr 인자 추가 — 행별 "아래 행추가" 버튼에서 호출 시 그 행 아래에 생성, 직후 persistOrder 로 위치 저장
 async function promptAddTerm(group, subgroup, anchorTr){
   if(!getEditor()){ openEditorModal(); return; }
   subgroup = subgroup || '';
@@ -1343,16 +1323,13 @@ async function promptAddTerm(group, subgroup, anchorTr){
   if(!table) return;
   // [2026-06-10] reorder 차단 (신규 행 위치 보존)
   suppressReorder(2500);
-  // [2026-06-10] anchor(바로 위 행) 계산 — doc 에 같이 저장해서 새로고침 후에도 그 위치에 복원
-  const anchorKey = anchorTr ? (getRowKey(anchorTr)||'') : '';
-  const anchorErp = anchorTr ? (getRowErp(anchorTr)||'') : '';
+  // [2026-06-10] anchorTr 가 있으면 그 행 바로 아래에 DOM 삽입 → 직후 persistOrder 가 이 순서를 erp_term_order 에 저장
   const newRow = buildTermRow(group, erp, mp, true, subgroup, key);
-  if(anchorKey || anchorErp){ newRow.dataset.anchorKey = anchorKey; newRow.dataset.anchorErp = anchorErp; }
   insertCustomRow(table, subgroup, newRow, anchorTr || null);
   try{
-    await setDoc(doc(db, COL, key), { group, erp, mp, subgroup, custom:true, anchorKey, anchorErp, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+    await setDoc(doc(db, COL, key), { group, erp, mp, subgroup, custom:true, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
     await addDoc(collection(db,'erp_term_logs'), { key, group, erp, subgroup, field:'(행추가)', before:'', after:erp, action:'add-term', editor:getEditor(), ts: serverTimestamp() });
-    // [2026-06-10] 신규 항목 추가 직후 현재 DOM 순서를 erp_term_order 에 저장 — 새로고침 후 위치 보존
+    // [2026-06-10] 신규 항목 추가 직후 현재 DOM 순서를 erp_term_order 에 저장 — 위치의 단일 기준. 새로고침 후 이 순서로 복원
     try{ await persistOrder(group, subgroup); }catch(err){ console.error('persistOrder(add)', err); tick('⚠️ 순서저장실패 — 행 자체는 저장됨'); }
     tick('➕ 신규 항목: '+erp+(subgroup?' ('+subgroup+')':''));
   }catch(e){ tick('⚠️ 추가실패: '+e.code); console.error(e); }
@@ -1457,8 +1434,6 @@ async function editTerm(group, erp, tr){
   const isCustom = tr.classList.contains('custom-row');
   // [2026-06-08] newKey 그대로 전달 (unique suffix 행 보존)
   const newRow = buildTermRow(group, newErp, newMp, isCustom, sub, newKey);
-  // [2026-06-10] anchor(위치 복원 정보) 유지 — 수정으로 행이 맨 위로 떠오르지 않게
-  if(tr.dataset.anchorKey || tr.dataset.anchorErp){ newRow.dataset.anchorKey = tr.dataset.anchorKey||''; newRow.dataset.anchorErp = tr.dataset.anchorErp||''; }
   const oldAr = tr.nextElementSibling;
   if(oldAr && oldAr.classList && oldAr.classList.contains('actions-row')) oldAr.parentNode.removeChild(oldAr);
   tr.parentNode.replaceChild(newRow, tr);
@@ -1618,7 +1593,6 @@ function makeRowDraggable(tr){
     e.preventDefault();
     const after = tr.classList.contains('drop-target-after');
     clearDropMarkers();
-    const moved = _dragSrc; // [2026-06-10] drop 후 anchor 갱신용 (dragend 에서 _dragSrc null 됨)
     const grp = getRowGroup(tr), sub = getRowSubgroup(tr);
     // src 의 actions-row 도 같이 이동
     // [2026-06-08] _dragSrc 바로 뒤가 actions-row가 아니면, 같은 rowKey의 actions-row를 표 안에서 찾아옴
@@ -1639,22 +1613,6 @@ function makeRowDraggable(tr){
     }
     try{ await persistOrder(grp, sub); }
     catch(err){ tick('⚠️ 순서저장실패: '+err.code); console.error(err); }
-    // [2026-06-10] 신규 행 드래그 시 doc 의 anchor(바로 위 행)도 갱신 — 순서배열이 어긋나도 새로고침 후 이 위치 복원
-    try{
-      if(moved && moved.classList.contains('custom-row')){
-        let prev = moved.previousElementSibling;
-        while(prev && prev.classList.contains('actions-row')) prev = prev.previousElementSibling;
-        const atTop = !prev || prev.classList.contains('flowsep');
-        const aKey = atTop ? '' : (getRowKey(prev)||'');
-        const aErp = atTop ? '' : (getRowErp(prev)||'');
-        const mk = getRowKey(moved);
-        if(mk){
-          if(aKey || aErp){ moved.dataset.anchorKey = aKey; moved.dataset.anchorErp = aErp; }
-          else { delete moved.dataset.anchorKey; delete moved.dataset.anchorErp; }
-          await setDoc(doc(db, COL, mk), { anchorKey:aKey, anchorErp:aErp, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
-        }
-      }
-    }catch(err){ console.error('anchor-update', err); }
   });
 }
 function injectDragHandles(){
@@ -1719,6 +1677,9 @@ function applyOrder(group, subgroup, order, orderKeys){
   const byErp = {};
   let cur = sep.nextElementSibling;
   while(cur && cur!==nextSep){
+    // [2026-06-10] actions-row 제외 — 본체 행 다음의 같은 rowKey actions-row 가 byKey 를 덮어쓰면
+    //   재배치 대상이 본체가 아닌 빈 actions-row 가 되어, 본체 행이 제자리에 안 가는 버그(신규행 맨위로 튐) 차단
+    if(cur.classList.contains('actions-row')){ cur = cur.nextElementSibling; continue; }
     const k = getRowKey(cur);
     const e = getRowErp(cur);
     if(k) byKey[k] = cur;
@@ -1727,13 +1688,11 @@ function applyOrder(group, subgroup, order, orderKeys){
   }
   const useKeys = Array.isArray(orderKeys) && orderKeys.length === order.length;
   // 저장된 순서대로 nextSep 직전에 재삽입 — actions-row 도 같이
-  const placed = new Set(); // [2026-06-10] 순서배열에 매칭된 행 추적 — 미매칭 행은 뒤에서 anchor 로 제자리 복원
   for(let i=0; i<order.length; i++){
     const erp = order[i];
     const key = useKeys ? orderKeys[i] : '';
     const row = (key && byKey[key]) ? byKey[key] : byErp[erp];
     if(row){
-      placed.add(row);
       // [2026-06-08] row 바로 뒤가 actions-row가 아니면 같은 rowKey의 actions-row를 표 안에서 찾아옴
       let ar = row.nextElementSibling && row.nextElementSibling.classList && row.nextElementSibling.classList.contains('actions-row') ? row.nextElementSibling : null;
       if(!ar){
@@ -1753,32 +1712,7 @@ function applyOrder(group, subgroup, order, orderKeys){
       const re = getRowErp(row); if(re && byErp[re]===row) delete byErp[re];
     }
   }
-  // [2026-06-10] 순서배열에 매칭 안 된 행은 다른 행들이 전부 아래로 재삽입되며 맨 위로 떠오름
-  // → anchor(바로 위 행) 정보가 있으면 그 자리로 복원
-  const processed = new Set();
-  let c = sep.nextElementSibling;
-  while(c && c!==nextSep){
-    const nxt = c.nextElementSibling;
-    if(!c.classList.contains('actions-row') && !c.classList.contains('flowsep')
-       && !placed.has(c) && !processed.has(c)
-       && (c.dataset.anchorKey || c.dataset.anchorErp)){
-      processed.add(c);
-      const anchor = findAnchorRow(table, group, subgroup, c.dataset.anchorKey||'', c.dataset.anchorErp||'');
-      // anchor 가 같은 소구분에 있을 때만 (anchor 행이 다른 분류로 이동했으면 현 위치 유지)
-      if(anchor && anchor!==c && (anchor.dataset.subgroup || getRowSubgroup(anchor) || '') === (subgroup||'')){
-        let cAr = c.nextElementSibling && c.nextElementSibling.classList && c.nextElementSibling.classList.contains('actions-row') ? c.nextElementSibling : null;
-        if(!cAr){
-          const ck = getRowKey(c);
-          if(ck) cAr = table.querySelector('tr.actions-row[data-row-key="'+ck.replace(/"/g,'\\"')+'"]');
-        }
-        const aAr = anchor.nextElementSibling && anchor.nextElementSibling.classList && anchor.nextElementSibling.classList.contains('actions-row') ? anchor.nextElementSibling : null;
-        const refNode = aAr ? aAr.nextElementSibling : anchor.nextElementSibling;
-        anchor.parentNode.insertBefore(c, refNode);
-        if(cAr) c.parentNode.insertBefore(cAr, c.nextElementSibling);
-      }
-    }
-    c = nxt;
-  }
+  // 저장 순서에 없는 행은 그 뒤에 자연스럽게 남음 (이미 그 위치)
 }
 // [2026-06-08] key 인자 추가 — key 주면 key 기준 제거 (같은 erp가 여러 개여도 정확히 1행만), 없으면 erp 기준 (legacy)
 async function removeFromOrder(group, subgroup, erp, key){
@@ -1859,7 +1793,7 @@ function wireRowActions(tr, key, group, erp){
   });
   const rBtn = tr.querySelector('.rationale-toggle');
   if(rBtn) rBtn.addEventListener('click', ()=>toggleRationaleBox(key, tr));
-  // [2026-06-10] 아래 행추가 — 클릭 시점의 본체 행 위치를 anchor 로 신규 항목 생성
+  // [2026-06-10] 아래 행추가 — 클릭한 행 바로 아래에 신규 항목 생성 (그 위치가 persistOrder 로 저장됨)
   const abBtn = tr.querySelector('.add-below-btn');
   if(abBtn) abBtn.addEventListener('click', e=>{
     e.stopPropagation();
@@ -2631,11 +2565,8 @@ function renderOrphanRows(m){
     if(!table) return;
     const sub = d.subgroup||'';
     // [2026-06-08] doc id(unique suffix 포함)를 keyOverride로 그대로 전달 — data-key가 doc id와 일치해야 saveCell·delete가 정확
-    // [2026-06-10] doc 에 저장된 anchor(바로 위 행) 위치에 복원 — 맨 위로 떠오르는 문제 해결
-    const row = buildTermRow(d.group, d.erp||String(key).split('::')[1]||key, d.mp||'', true, sub, key);
-    if(d.anchorKey || d.anchorErp){ row.dataset.anchorKey = d.anchorKey||''; row.dataset.anchorErp = d.anchorErp||''; }
-    const anchorTr = findAnchorRow(table, d.group, sub, d.anchorKey||'', d.anchorErp||'');
-    insertCustomRow(table, sub, row, anchorTr);
+    // [2026-06-10] 임시 위치에 그린 뒤, snapshot 콜백 끝의 applyOrder 가 erp_term_order 기준으로 제자리 배치
+    insertCustomRow(table, sub, buildTermRow(d.group, d.erp||String(key).split('::')[1]||key, d.mp||'', true, sub, key));
   });
 }
 
