@@ -636,7 +636,10 @@ function saveCell(key, field, group, erp, value){
   timers[t] = setTimeout(()=>{ delete timers[t]; doSave(key, field, group, erp, value); }, 2000);
 }
 
-// [2026-06-10] 저널 복구 — 첫 snapshot 도착 후 1회: 못 보낸 저장을 자동 재전송
+// [2026-06-10] 저널 복구 — 첫 snapshot 도착 후 1회: 못 보낸 저장을 복구
+//   [데이터 안전 원칙] 자동 복구는 "빈 칸"에 한정 — 덮어쓸 데이터가 없어 유실 위험 0.
+//   현재 값이 있고 내 미저장값과 다르면(=다른 사람이 그 사이 입력했을 수 있음) 절대 자동으로 덮어쓰지 않고
+//   사용자에게 양쪽 값을 보여주고 직접 선택하게 한다.
 let _journalReplayed = false;
 function replayJournal(){
   if(_journalReplayed) return;
@@ -644,23 +647,47 @@ function replayJournal(){
   const o = journalGet();
   const ks = Object.keys(o);
   if(!ks.length) return;
-  const MAX_AGE_EMPTY = 1000*60*60*12;  // 현재 값이 비어있으면 12시간까지 복구
-  const MAX_AGE_DIRTY = 1000*60*30;     // 현재 값이 이미 있으면(다른 값) 30분 이내 것만 복구 (남의 최신 입력 덮어쓰기 방지)
+  const MAX_AGE = 1000*60*60*12;  // 12시간 지난 미저장분은 폐기 (오래된 잔재 복구로 인한 사고 방지)
   let replayed = 0;
+  const conflicts = [];
   ks.forEach(jk=>{
     const it = o[jk];
-    if(!it || !it.key){ delete o[jk]; return; }
+    if(!it || !it.key || !it.field){ delete o[jk]; return; }
     const age = Date.now() - (it.ts||0);
     const cur = lastSnap[it.key]?.[it.field] || '';
     const want = String(it.value||'').trim();
-    if(cur === want){ delete o[jk]; return; }            // 이미 반영됨
-    if(age > (cur ? MAX_AGE_DIRTY : MAX_AGE_EMPTY)){ delete o[jk]; return; } // 너무 오래됨 → 폐기
-    doSave(it.key, it.field, it.group, it.erp, it.value);
-    replayed++;
-    delete o[jk];
+    if(cur === want){ delete o[jk]; return; }       // 이미 반영됨
+    if(age > MAX_AGE){ delete o[jk]; return; }       // 너무 오래됨 → 폐기
+    if(cur === ''){                                  // 빈 칸 → 덮어쓸 데이터 없음, 안전하게 자동 복구
+      doSave(it.key, it.field, it.group, it.erp, it.value);
+      replayed++; delete o[jk];
+    } else {
+      conflicts.push({ jk, it, cur, want });         // 값 있음 → 자동 덮어쓰기 금지, 사용자 확인 대상
+    }
   });
   journalSet(o);
-  if(replayed) tick('♻️ 미저장 입력 '+replayed+'건 자동 복구');
+  if(replayed) tick('♻️ 미저장 입력 '+replayed+'건 자동 복구 (빈 칸)');
+  // 충돌건: 자동 덮어쓰기 절대 안 함 — 남의 최신 입력 보호. 사용자가 양쪽 값 보고 1건씩 결정.
+  if(conflicts.length) setTimeout(()=>resolveJournalConflicts(conflicts), 600);
+}
+// [2026-06-10] 미저장 입력과 현재 저장값이 충돌할 때 — 사용자에게 양쪽 값을 보여주고 선택. 자동 덮어쓰기 X.
+function resolveJournalConflicts(conflicts){
+  const o = journalGet();
+  conflicts.forEach(c=>{
+    const fieldName = c.it.field==='final' ? '최종 협의안' : '1차 수정안';
+    const keep = confirm(
+      '⚠️ 미반영 입력이 현재 저장된 값과 다릅니다 — 어느 쪽을 남길지 선택하세요.\n'+
+      '(다른 편집자가 그 사이 수정했을 수 있어 자동으로 덮어쓰지 않았습니다)\n\n'+
+      '항목: '+(c.it.erp||c.it.key)+'  ['+fieldName+']\n\n'+
+      '· 내가 입력하던 값:  "'+c.want+'"\n'+
+      '· 현재 저장된 값:    "'+c.cur+'"\n\n'+
+      '[확인] = 내 입력으로 덮어쓰기\n'+
+      '[취소] = 현재 저장된 값 그대로 유지'
+    );
+    if(keep) doSave(c.it.key, c.it.field, c.it.group, c.it.erp, c.it.value);
+    delete o[c.jk]; // 선택 끝났으니 저널에서 제거 (재확인 반복 방지)
+  });
+  journalSet(o);
 }
 
 // [2026-06-10] 창 닫기/새로고침 직전 — debounce 대기분 + 입력 칸 현재값을 저널에 확보 (다음 접속 때 replayJournal 이 복구)
