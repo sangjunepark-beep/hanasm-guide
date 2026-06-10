@@ -1254,6 +1254,8 @@ async function promptAddTerm(group, subgroup){
   try{
     await setDoc(doc(db, COL, key), { group, erp, mp, subgroup, custom:true, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
     await addDoc(collection(db,'erp_term_logs'), { key, group, erp, subgroup, field:'(행추가)', before:'', after:erp, action:'add-term', editor:getEditor(), ts: serverTimestamp() });
+    // [2026-06-10] 신규 항목 추가 직후 현재 DOM 순서를 erp_term_order 에 저장 — 새로고침 후 위치 보존
+    try{ await persistOrder(group, subgroup); }catch(_){}
     tick('➕ 신규 항목: '+erp+(subgroup?' ('+subgroup+')':''));
   }catch(e){ tick('⚠️ 추가실패: '+e.code); console.error(e); }
 }
@@ -1410,6 +1412,8 @@ async function editTerm(group, erp, tr){
       await setDoc(doc(db, COL, oldKey), payload, {merge:true});
     }
     await addDoc(collection(db,'erp_term_logs'), { key:oldKey, group, erp, subgroup:sub, field:'(행수정)', before:JSON.stringify({erp,mp:oldMp}), after:JSON.stringify({erp:newErp,mp:newMp}), action:'edit-term', editor:getEditor(), ts: serverTimestamp() });
+    // [2026-06-10] 수정 후 현재 DOM 순서 저장 — 새로고침 후 위치 보존
+    try{ await persistOrder(group, sub); }catch(_){}
     tick('✏ 신규 항목 수정: '+erp+(renamed?' → '+newErp:''));
   }catch(e){ tick('⚠️ 수정실패: '+(e.code||e.message)); console.error(e); }
   finally{
