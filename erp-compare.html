@@ -1306,12 +1306,15 @@ async function editTerm(group, erp, tr){
   newMp = newMp.trim();
   const renamed = (newErp !== erp);
   // [2026-06-08] newErp가 "없음" 등 중복 허용 명칭이면 새 doc id에 unique suffix 부여 → 중복 경고 건너뜀
+  // [2026-06-10] ERP명 안 바꿀 때(renamed=false)는 oldKey 그대로 유지 — unique suffix 행이 새 doc 으로 분리되는 버그 방지
   let newKey;
-  if(renamed && isDupAllowed(newErp)){
+  if(!renamed){
+    newKey = oldKey;
+  } else if(isDupAllowed(newErp)){
     newKey = makeUniqueKey(termKey(group, sub, newErp));
   } else {
     newKey = termKey(group, sub, newErp);
-    if(renamed && document.querySelector(keySel(newKey))){
+    if(document.querySelector(keySel(newKey))){
       if(!confirm('"'+newErp+'" 라는 이름의 항목이 이미 있습니다.\n\n진행하면 같은 데이터 문서를 공유하게 되어, 1차/최종 협의안 값이 서로 연동됩니다.\n그래도 진행할까요?')) return;
     }
   }
