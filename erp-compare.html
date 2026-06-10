@@ -178,6 +178,8 @@
  tr.confirmed + tr.actions-row td{background:rgba(232,245,232,.55);}
  .row-actions{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:11.5px;}
  .row-actions .group-label{color:#888;font-size:10px;margin-right:2px;}
+ .add-below-btn{margin-left:auto;padding:2px 9px;background:#fff;color:#2c5b9c;border:1px dashed #9ab3d0;border-radius:4px;cursor:pointer;font-size:10.5px;font-family:inherit;font-weight:600;white-space:nowrap;opacity:.7;}
+ .add-below-btn:hover{opacity:1;border-color:#2c5b9c;background:#eef4fb;}
  .approvals,.downstream{display:inline-flex;gap:3px;flex-wrap:wrap;max-width:100%;}
  .confirm-btn{display:inline-flex;align-items:center;justify-content:center;min-width:88px;height:26px;padding:0 12px;border:1.5px solid #c8d4e0;background:#fff;color:#666;border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:700;line-height:1;user-select:none;transition:background .12s,color .12s,border-color .12s,box-shadow .12s,transform .08s;}
  .confirm-btn:hover{background:#f0f8f0;border-color:#3a7a3a;color:#3a7a3a;}
@@ -578,6 +580,21 @@ function makeUniqueKey(baseKey){
 
 // 디바운스 저장 (필드 단위: draft 또는 final)
 const timers = {};
+
+// [2026-06-10] 저장 유실 방지 저널 — debounce(2초) 안에 새로고침/창닫기 해도 다음 접속 시 자동 복구
+const PENDING_KEY = 'hanasm_erp_pending_saves';
+function journalGet(){ try{ return JSON.parse(localStorage.getItem(PENDING_KEY)||'{}'); }catch(_){ return {}; } }
+function journalSet(o){ try{ localStorage.setItem(PENDING_KEY, JSON.stringify(o)); }catch(_){} }
+function journalAdd(key, field, group, erp, value){
+  const o = journalGet();
+  o[key+'::'+field] = { key, field, group, erp, value, ts: Date.now() };
+  journalSet(o);
+}
+function journalRemove(key, field){
+  const o = journalGet();
+  if(o[key+'::'+field] !== undefined){ delete o[key+'::'+field]; journalSet(o); }
+}
+
 // [2026-06-10] saveCell 실제 저장 로직 분리 → blur·beforeunload 에서 즉시 flush 가능
 async function doSave(key, field, group, erp, value){
   if(!getEditor()){ openEditorModal(); return; }
@@ -588,8 +605,9 @@ async function doSave(key, field, group, erp, value){
     const mp = inputEl?.dataset.mp || '';
     const before = lastSnap[key]?.[field] || '';
     const after = value.trim();
-    if(before === after) return;  // 같으면 저장 안 함
-    const payload = { group, erp, mp, updatedAt: serverTimestamp(), updatedBy: editor };
+    if(before === after){ journalRemove(key, field); return; }  // 같으면 저장 안 함 (저널도 정리)
+    const payload = { group, erp, updatedAt: serverTimestamp(), updatedBy: editor };
+    if(inputEl) payload.mp = mp; // [2026-06-10] 저널 복구 등 input 없는 저장에서 mp 를 빈값으로 덮어쓰지 않음
     if(after===''){
       payload[field] = deleteField();
       payload[field+'_by'] = deleteField();
@@ -606,15 +624,60 @@ async function doSave(key, field, group, erp, value){
       editor, ts: serverTimestamp()
     });
     if(inputEl) inputEl.dataset.saved = '1';
+    journalRemove(key, field); // 저장 성공 → 저널 정리
     tick('☁️ 저장됨 ('+editor+')');
-  }catch(e){ tick('⚠️ 저장실패: '+e.code); console.error(e); }
+  }catch(e){ tick('⚠️ 저장실패: '+e.code); console.error(e); } // 실패 시 저널에 남아 다음 접속 때 복구
 }
 function saveCell(key, field, group, erp, value){
   if(!getEditor()){ openEditorModal(); return; }
+  journalAdd(key, field, group, erp, value); // [2026-06-10] debounce 대기 중 유실 대비 저널 기록
   const t = key + '::' + field;
   clearTimeout(timers[t]);
   timers[t] = setTimeout(()=>{ delete timers[t]; doSave(key, field, group, erp, value); }, 2000);
 }
+
+// [2026-06-10] 저널 복구 — 첫 snapshot 도착 후 1회: 못 보낸 저장을 자동 재전송
+let _journalReplayed = false;
+function replayJournal(){
+  if(_journalReplayed) return;
+  _journalReplayed = true;
+  const o = journalGet();
+  const ks = Object.keys(o);
+  if(!ks.length) return;
+  const MAX_AGE_EMPTY = 1000*60*60*12;  // 현재 값이 비어있으면 12시간까지 복구
+  const MAX_AGE_DIRTY = 1000*60*30;     // 현재 값이 이미 있으면(다른 값) 30분 이내 것만 복구 (남의 최신 입력 덮어쓰기 방지)
+  let replayed = 0;
+  ks.forEach(jk=>{
+    const it = o[jk];
+    if(!it || !it.key){ delete o[jk]; return; }
+    const age = Date.now() - (it.ts||0);
+    const cur = lastSnap[it.key]?.[it.field] || '';
+    const want = String(it.value||'').trim();
+    if(cur === want){ delete o[jk]; return; }            // 이미 반영됨
+    if(age > (cur ? MAX_AGE_DIRTY : MAX_AGE_EMPTY)){ delete o[jk]; return; } // 너무 오래됨 → 폐기
+    doSave(it.key, it.field, it.group, it.erp, it.value);
+    replayed++;
+    delete o[jk];
+  });
+  journalSet(o);
+  if(replayed) tick('♻️ 미저장 입력 '+replayed+'건 자동 복구');
+}
+
+// [2026-06-10] 창 닫기/새로고침 직전 — debounce 대기분 + 입력 칸 현재값을 저널에 확보 (다음 접속 때 replayJournal 이 복구)
+window.addEventListener('beforeunload', ()=>{
+  try{
+    const o = journalGet();
+    document.querySelectorAll('input.dec').forEach(i=>{
+      const k = i.dataset.key, f = i.dataset.field;
+      if(!k || !f) return;
+      const last = lastSnap[k]?.[f] || '';
+      if(i.value.trim() !== last){
+        o[k+'::'+f] = { key:k, field:f, group:i.dataset.group, erp:i.dataset.erp, value:i.value, ts: Date.now() };
+      }
+    });
+    journalSet(o);
+  }catch(_){}
+});
 // 즉시 저장 (blur, beforeunload 용 - debounce 무시)
 function flushSave(key, field, group, erp, value){
   const t = key + '::' + field;
@@ -768,6 +831,8 @@ function init(){
       }
     });
     document.getElementById('cnt').textContent = `1차 ${drafts} · 최종 ${finals}`;
+    // [2026-06-10] 첫 snapshot 후 1회 — 이전 세션에서 못 보낸 저장 자동 복구
+    if(!_journalReplayed) setTimeout(replayJournal, 800);
   }, err=>{ tick('⚠️ 동기화실패: '+err.code); });
 
   // 행 순서 + 소구분 순서 실시간 구독 (같은 컬렉션 안에서 doc id prefix 로 구분)
@@ -993,24 +1058,51 @@ function rewriteStageKeysBySubgroup(){
   });
 }
 
-function insertCustomRow(table, subgroup, tr){
-  let sep = null;
-  if(subgroup){
-    table.querySelectorAll('tr.flowsep').forEach(s=>{
-      if(!sep && s.dataset.subgroup===subgroup) sep = s;
-    });
-  }
-  // [2026-06-08] 항목 추가는 무조건 맨 위 (subgroup 있으면 flowsep 직후, 없으면 tbody 첫 자리)
-  if(!sep){
-    const tbody = table.tBodies[0]||table;
-    if(tbody.firstChild) tbody.insertBefore(tr, tbody.firstChild);
-    else tbody.appendChild(tr);
+// [2026-06-10] anchorTr 인자 추가 — 있으면 그 행(과 actions-row) 바로 아래에 삽입, 없으면 기존대로 소구분 맨 위
+function insertCustomRow(table, subgroup, tr, anchorTr){
+  if(anchorTr && anchorTr.parentNode){
+    const aAr = anchorTr.nextElementSibling && anchorTr.nextElementSibling.classList && anchorTr.nextElementSibling.classList.contains('actions-row') ? anchorTr.nextElementSibling : null;
+    const refNode = aAr ? aAr.nextElementSibling : anchorTr.nextElementSibling;
+    anchorTr.parentNode.insertBefore(tr, refNode);
   } else {
-    sep.parentNode.insertBefore(tr, sep.nextElementSibling);
+    let sep = null;
+    if(subgroup){
+      table.querySelectorAll('tr.flowsep').forEach(s=>{
+        if(!sep && s.dataset.subgroup===subgroup) sep = s;
+      });
+    }
+    // [2026-06-08] anchor 없으면 맨 위 (subgroup 있으면 flowsep 직후, 없으면 tbody 첫 자리)
+    if(!sep){
+      const tbody = table.tBodies[0]||table;
+      if(tbody.firstChild) tbody.insertBefore(tr, tbody.firstChild);
+      else tbody.appendChild(tr);
+    } else {
+      sep.parentNode.insertBefore(tr, sep.nextElementSibling);
+    }
   }
   // actions-row 같이 추가
   const inp = tr.querySelector('input.dec.final');
   if(inp) appendActionsRow(tr, inp.dataset.key, inp.dataset.group, inp.dataset.erp, tr.classList.contains('custom-row'));
+}
+
+// [2026-06-10] anchor(바로 위 행) 찾기 — rowKey 우선, 같은 소구분 내 erp 폴백
+function findAnchorRow(table, group, subgroup, anchorKey, anchorErp){
+  if(!anchorKey && !anchorErp) return null;
+  if(anchorKey){
+    const escK = String(anchorKey).replace(/"/g,'\\"');
+    const r = table.querySelector('tr:not(.actions-row)[data-row-key="'+escK+'"]');
+    // anchor 행이 같은 소구분에 있을 때만 유효 (분류이동 등으로 떠났으면 erp 폴백/null)
+    if(r && (r.dataset.subgroup || getRowSubgroup(r) || '') === (subgroup||'')) return r;
+  }
+  if(anchorErp){
+    const sel = 'input.dec[data-group="'+group+'"][data-erp="'+String(anchorErp).replace(/"/g,'\\"')+'"]';
+    const inps = table.querySelectorAll(sel);
+    for(const inp of inps){
+      const r = inp.closest('tr');
+      if(r && !r.classList.contains('actions-row') && (r.dataset.subgroup || getRowSubgroup(r) || '') === (subgroup||'')) return r;
+    }
+  }
+  return null;
 }
 
 // [2026-06-08] 분류 이동 — 모든 행 첫 칸에 ↔ 작은 버튼 부착
@@ -1125,7 +1217,7 @@ async function moveRowToSubgroup(tr, group, erp, oldKey, curSub, newSub){
         const newSnap = await getDoc(doc(db, COL, newKey));
         const newExisting = newSnap.exists() ? newSnap.data() : {};
         const merged = Object.assign({}, oldData, newExisting, {
-          group:'stage', erp, subgroup:newSub,
+          group:'stage', erp, subgroup:newSub, anchorKey:'', anchorErp:'',
           updatedAt: serverTimestamp(), updatedBy: getEditor()
         });
         _pendingDeletes.add(oldKey);
@@ -1133,12 +1225,12 @@ async function moveRowToSubgroup(tr, group, erp, oldKey, curSub, newSub){
         await deleteDoc(doc(db, COL, oldKey));
         setTimeout(()=>_pendingDeletes.delete(oldKey), 1500);
       } else {
-        // 같은 키 (subgroup만 메타로 갱신)
-        await setDoc(doc(db, COL, oldKey), { subgroup:newSub, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+        // 같은 키 (subgroup만 메타로 갱신) — anchor 는 옛 소구분 기준이라 초기화
+        await setDoc(doc(db, COL, oldKey), { subgroup:newSub, anchorKey:'', anchorErp:'', updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
       }
     } else {
-      // material / machine: doc id 그대로, subgroup 필드만 갱신
-      await setDoc(doc(db, COL, oldKey), { group, erp, subgroup:newSub, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+      // material / machine: doc id 그대로, subgroup 필드만 갱신 — anchor 는 옛 소구분 기준이라 초기화
+      await setDoc(doc(db, COL, oldKey), { group, erp, subgroup:newSub, anchorKey:'', anchorErp:'', updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
     }
 
     // DOM 이동 (낙관적 — snapshot 와도 keySel 매칭으로 유지)
@@ -1225,7 +1317,8 @@ function appendActionsRow(mainTr, key, group, erp, custom){
   return actionsTr;
 }
 
-async function promptAddTerm(group, subgroup){
+// [2026-06-10] anchorTr 인자 추가 — 행별 "아래 행추가" 버튼에서 호출 시 그 행 아래에 생성 + anchor 영구 저장
+async function promptAddTerm(group, subgroup, anchorTr){
   if(!getEditor()){ openEditorModal(); return; }
   subgroup = subgroup || '';
   const sgLabel = subgroup ? '[ '+subgroup+' ] ' : '';
@@ -1250,12 +1343,17 @@ async function promptAddTerm(group, subgroup){
   if(!table) return;
   // [2026-06-10] reorder 차단 (신규 행 위치 보존)
   suppressReorder(2500);
-  insertCustomRow(table, subgroup, buildTermRow(group, erp, mp, true, subgroup, key));
+  // [2026-06-10] anchor(바로 위 행) 계산 — doc 에 같이 저장해서 새로고침 후에도 그 위치에 복원
+  const anchorKey = anchorTr ? (getRowKey(anchorTr)||'') : '';
+  const anchorErp = anchorTr ? (getRowErp(anchorTr)||'') : '';
+  const newRow = buildTermRow(group, erp, mp, true, subgroup, key);
+  if(anchorKey || anchorErp){ newRow.dataset.anchorKey = anchorKey; newRow.dataset.anchorErp = anchorErp; }
+  insertCustomRow(table, subgroup, newRow, anchorTr || null);
   try{
-    await setDoc(doc(db, COL, key), { group, erp, mp, subgroup, custom:true, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+    await setDoc(doc(db, COL, key), { group, erp, mp, subgroup, custom:true, anchorKey, anchorErp, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
     await addDoc(collection(db,'erp_term_logs'), { key, group, erp, subgroup, field:'(행추가)', before:'', after:erp, action:'add-term', editor:getEditor(), ts: serverTimestamp() });
     // [2026-06-10] 신규 항목 추가 직후 현재 DOM 순서를 erp_term_order 에 저장 — 새로고침 후 위치 보존
-    try{ await persistOrder(group, subgroup); }catch(_){}
+    try{ await persistOrder(group, subgroup); }catch(err){ console.error('persistOrder(add)', err); tick('⚠️ 순서저장실패 — 행 자체는 저장됨'); }
     tick('➕ 신규 항목: '+erp+(subgroup?' ('+subgroup+')':''));
   }catch(e){ tick('⚠️ 추가실패: '+e.code); console.error(e); }
 }
@@ -1359,6 +1457,8 @@ async function editTerm(group, erp, tr){
   const isCustom = tr.classList.contains('custom-row');
   // [2026-06-08] newKey 그대로 전달 (unique suffix 행 보존)
   const newRow = buildTermRow(group, newErp, newMp, isCustom, sub, newKey);
+  // [2026-06-10] anchor(위치 복원 정보) 유지 — 수정으로 행이 맨 위로 떠오르지 않게
+  if(tr.dataset.anchorKey || tr.dataset.anchorErp){ newRow.dataset.anchorKey = tr.dataset.anchorKey||''; newRow.dataset.anchorErp = tr.dataset.anchorErp||''; }
   const oldAr = tr.nextElementSibling;
   if(oldAr && oldAr.classList && oldAr.classList.contains('actions-row')) oldAr.parentNode.removeChild(oldAr);
   tr.parentNode.replaceChild(newRow, tr);
@@ -1518,6 +1618,7 @@ function makeRowDraggable(tr){
     e.preventDefault();
     const after = tr.classList.contains('drop-target-after');
     clearDropMarkers();
+    const moved = _dragSrc; // [2026-06-10] drop 후 anchor 갱신용 (dragend 에서 _dragSrc null 됨)
     const grp = getRowGroup(tr), sub = getRowSubgroup(tr);
     // src 의 actions-row 도 같이 이동
     // [2026-06-08] _dragSrc 바로 뒤가 actions-row가 아니면, 같은 rowKey의 actions-row를 표 안에서 찾아옴
@@ -1538,6 +1639,22 @@ function makeRowDraggable(tr){
     }
     try{ await persistOrder(grp, sub); }
     catch(err){ tick('⚠️ 순서저장실패: '+err.code); console.error(err); }
+    // [2026-06-10] 신규 행 드래그 시 doc 의 anchor(바로 위 행)도 갱신 — 순서배열이 어긋나도 새로고침 후 이 위치 복원
+    try{
+      if(moved && moved.classList.contains('custom-row')){
+        let prev = moved.previousElementSibling;
+        while(prev && prev.classList.contains('actions-row')) prev = prev.previousElementSibling;
+        const atTop = !prev || prev.classList.contains('flowsep');
+        const aKey = atTop ? '' : (getRowKey(prev)||'');
+        const aErp = atTop ? '' : (getRowErp(prev)||'');
+        const mk = getRowKey(moved);
+        if(mk){
+          if(aKey || aErp){ moved.dataset.anchorKey = aKey; moved.dataset.anchorErp = aErp; }
+          else { delete moved.dataset.anchorKey; delete moved.dataset.anchorErp; }
+          await setDoc(doc(db, COL, mk), { anchorKey:aKey, anchorErp:aErp, updatedAt: serverTimestamp(), updatedBy: getEditor() }, {merge:true});
+        }
+      }
+    }catch(err){ console.error('anchor-update', err); }
   });
 }
 function injectDragHandles(){
@@ -1610,11 +1727,13 @@ function applyOrder(group, subgroup, order, orderKeys){
   }
   const useKeys = Array.isArray(orderKeys) && orderKeys.length === order.length;
   // 저장된 순서대로 nextSep 직전에 재삽입 — actions-row 도 같이
+  const placed = new Set(); // [2026-06-10] 순서배열에 매칭된 행 추적 — 미매칭 행은 뒤에서 anchor 로 제자리 복원
   for(let i=0; i<order.length; i++){
     const erp = order[i];
     const key = useKeys ? orderKeys[i] : '';
     const row = (key && byKey[key]) ? byKey[key] : byErp[erp];
     if(row){
+      placed.add(row);
       // [2026-06-08] row 바로 뒤가 actions-row가 아니면 같은 rowKey의 actions-row를 표 안에서 찾아옴
       let ar = row.nextElementSibling && row.nextElementSibling.classList && row.nextElementSibling.classList.contains('actions-row') ? row.nextElementSibling : null;
       if(!ar){
@@ -1634,7 +1753,32 @@ function applyOrder(group, subgroup, order, orderKeys){
       const re = getRowErp(row); if(re && byErp[re]===row) delete byErp[re];
     }
   }
-  // 저장 순서에 없는 행은 그 뒤에 자연스럽게 남음 (이미 그 위치)
+  // [2026-06-10] 순서배열에 매칭 안 된 행은 다른 행들이 전부 아래로 재삽입되며 맨 위로 떠오름
+  // → anchor(바로 위 행) 정보가 있으면 그 자리로 복원
+  const processed = new Set();
+  let c = sep.nextElementSibling;
+  while(c && c!==nextSep){
+    const nxt = c.nextElementSibling;
+    if(!c.classList.contains('actions-row') && !c.classList.contains('flowsep')
+       && !placed.has(c) && !processed.has(c)
+       && (c.dataset.anchorKey || c.dataset.anchorErp)){
+      processed.add(c);
+      const anchor = findAnchorRow(table, group, subgroup, c.dataset.anchorKey||'', c.dataset.anchorErp||'');
+      // anchor 가 같은 소구분에 있을 때만 (anchor 행이 다른 분류로 이동했으면 현 위치 유지)
+      if(anchor && anchor!==c && (anchor.dataset.subgroup || getRowSubgroup(anchor) || '') === (subgroup||'')){
+        let cAr = c.nextElementSibling && c.nextElementSibling.classList && c.nextElementSibling.classList.contains('actions-row') ? c.nextElementSibling : null;
+        if(!cAr){
+          const ck = getRowKey(c);
+          if(ck) cAr = table.querySelector('tr.actions-row[data-row-key="'+ck.replace(/"/g,'\\"')+'"]');
+        }
+        const aAr = anchor.nextElementSibling && anchor.nextElementSibling.classList && anchor.nextElementSibling.classList.contains('actions-row') ? anchor.nextElementSibling : null;
+        const refNode = aAr ? aAr.nextElementSibling : anchor.nextElementSibling;
+        anchor.parentNode.insertBefore(c, refNode);
+        if(cAr) c.parentNode.insertBefore(cAr, c.nextElementSibling);
+      }
+    }
+    c = nxt;
+  }
 }
 // [2026-06-08] key 인자 추가 — key 주면 key 기준 제거 (같은 erp가 여러 개여도 정확히 1행만), 없으면 erp 기준 (legacy)
 async function removeFromOrder(group, subgroup, erp, key){
@@ -1702,7 +1846,9 @@ function buildRowActionsHtml(key){
   dsHtml += '</span>';
   const rationale = '<button type="button" class="rationale-toggle" data-key="'+e(key)+'" title="결정 사유 / 비고 (왜 이 안인가)">📝</button><span class="rationale-preview" data-rationale-preview-key="'+e(key)+'"></span>';
   const box = '<div class="rationale-box" data-rationale-box-key="'+e(key)+'"><textarea placeholder="이 행의 결정 사유 · 비고 (예: 장비명 아닌 후공정명으로 통일 — 송기용팀장님 제안)"></textarea><div class="rationale-meta" data-rationale-meta-key="'+e(key)+'"></div></div>';
-  return '<div class="row-actions">'+confirmHtml+rationale+dsHtml+'</div>'+box;
+  // [2026-06-10] 행마다 "아래 행추가" — 이 행 바로 아래 위치에 신규 항목 생성 (위치 영구 저장)
+  const addBelow = '<button type="button" class="add-below-btn" data-key="'+e(key)+'" title="이 행 바로 아래에 신규 항목 추가 (위치 저장됨)">＋ 아래 행추가</button>';
+  return '<div class="row-actions">'+confirmHtml+rationale+dsHtml+addBelow+'</div>'+box;
 }
 
 function wireRowActions(tr, key, group, erp){
@@ -1713,6 +1859,15 @@ function wireRowActions(tr, key, group, erp){
   });
   const rBtn = tr.querySelector('.rationale-toggle');
   if(rBtn) rBtn.addEventListener('click', ()=>toggleRationaleBox(key, tr));
+  // [2026-06-10] 아래 행추가 — 클릭 시점의 본체 행 위치를 anchor 로 신규 항목 생성
+  const abBtn = tr.querySelector('.add-below-btn');
+  if(abBtn) abBtn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const escK = String(key).replace(/"/g,'\\"');
+    const body = document.querySelector('tr:not(.actions-row)[data-row-key="'+escK+'"]');
+    const sub = body ? (body.dataset.subgroup || getRowSubgroup(body) || '') : (tr.dataset.subgroup || '');
+    promptAddTerm(group, sub, body || null);
+  });
   const ta = tr.querySelector('.rationale-box textarea');
   if(ta){
     let to;
@@ -2476,7 +2631,11 @@ function renderOrphanRows(m){
     if(!table) return;
     const sub = d.subgroup||'';
     // [2026-06-08] doc id(unique suffix 포함)를 keyOverride로 그대로 전달 — data-key가 doc id와 일치해야 saveCell·delete가 정확
-    insertCustomRow(table, sub, buildTermRow(d.group, d.erp||String(key).split('::')[1]||key, d.mp||'', true, sub, key));
+    // [2026-06-10] doc 에 저장된 anchor(바로 위 행) 위치에 복원 — 맨 위로 떠오르는 문제 해결
+    const row = buildTermRow(d.group, d.erp||String(key).split('::')[1]||key, d.mp||'', true, sub, key);
+    if(d.anchorKey || d.anchorErp){ row.dataset.anchorKey = d.anchorKey||''; row.dataset.anchorErp = d.anchorErp||''; }
+    const anchorTr = findAnchorRow(table, d.group, sub, d.anchorKey||'', d.anchorErp||'');
+    insertCustomRow(table, sub, row, anchorTr);
   });
 }
 
