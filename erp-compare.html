@@ -2223,21 +2223,26 @@ function injectCopyButtons(){
 }
 
 // 주입용 CSV (ERP·상품DB·챗봇 일괄 처리용)
+// [2026-06-10] 시스템 영문 표기(헤더·분류·상태·반영처)는 국문으로 출력. 제품·장비·재질 기술명(UV·DTF·ZUND 등)은 실제 데이터라 원본 유지.
 window.exportCSVInjection = async function(){
   const snap = await getDocs(collection(db, COL));
-  const rows = [['group','subgroup','erp_name','unified_name','status','confirmed_by','confirmed_at','rationale','deployed_to']];
+  const STATUS_KO = { confirmed:'확정', 'final-draft':'최종초안', 'in-progress':'진행중' };
+  // [2026-06-10] 1차 수정안(draft)·최종 협의안(final)을 합치지 말고 각각 별도 컬럼으로 — 입력한 값 그대로 출력
+  const rows = [['분류','소분류','ERP명칭','1차 수정안','최종 협의안','상태','확정자','확정일시','사유','반영처']];
   snap.forEach(d=>{
     const x = d.data();
     if(!x.final && !x.draft) return;
     const cv = x.confirmed;
     const isConfirmed = !!(cv && cv.by);
-    const status = isConfirmed ? 'confirmed' : (x.final ? 'final-draft' : 'in-progress');
+    const statusCode = isConfirmed ? 'confirmed' : (x.final ? 'final-draft' : 'in-progress');
     const dsOk = DOWNSTREAM_TARGETS.filter(t => x.downstream && x.downstream[t.key] && x.downstream[t.key].by);
-    const dsList = dsOk.map(t => t.key).join('|');
+    const dsList = dsOk.map(t => t.short).join('|'); // erp/productdb/chatbot → ERP/상품DB/챗봇
     rows.push([
-      x.group||'', x.subgroup||'', x.erp||'',
-      x.final || x.draft || '',
-      status,
+      GROUP_LABEL[x.group] || x.group || '',  // machine/stage/material → 사용장비/공정/재질
+      x.subgroup||'', x.erp||'',
+      x.draft||'',   // 1차 수정안 — 입력 그대로
+      x.final||'',   // 최종 협의안 — 입력 그대로
+      STATUS_KO[statusCode] || statusCode,
       isConfirmed ? cv.by : '',
       isConfirmed ? cv.at : '',
       x.rationale||'',
