@@ -2268,12 +2268,7 @@ window.exportCSVInjection = async function(){
       pushRow(x, tr.dataset.subgroup || curSub);
     });
   });
-  // 안전망: 화면에 안 그려졌지만 값이 있는 doc(고아 등)은 뒤에 덧붙임 — 유실 방지
-  Object.keys(byId).forEach(id=>{
-    if(seen.has(id)) return;
-    const x = byId[id];
-    if(x && (x.final || x.draft) && GROUP_LABEL[x.group]){ seen.add(id); pushRow(x, x.subgroup||''); }
-  });
+  // [2026-06-10] 화면에 보이는 행만 출력 — 작업 상태 그대로. 화면에 안 그려진 옛/중복 잔재 doc 은 CSV 에 넣지 않음(쓰레기 주입 방지)
   if(rows.length===1){ alert('주입할 데이터가 없습니다.'); return; }
   const csv = '﻿' + rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
