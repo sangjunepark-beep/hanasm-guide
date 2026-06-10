@@ -2854,6 +2854,73 @@ window.restoreLostStage = async function(erpList){
   return results;
 };
 
+// [2026-06-10] 디버그: 특정 날짜·편집자의 erp_term_logs 작업 이력 조회
+window.findLogsByDate = async function(editorName, year, month, day){
+  const snap = await getDocs(collection(db, 'erp_term_logs'));
+  const rows = [];
+  snap.forEach(d=>{
+    const x = d.data() || {};
+    if(editorName && !(x.editor||'').includes(editorName)) return;
+    const ts = x.ts?.toDate?.();
+    if(year != null && !ts) return;
+    if(ts && year != null){
+      if(ts.getFullYear() !== year) return;
+      if(month != null && ts.getMonth() !== month-1) return;
+      if(day != null && ts.getDate() !== day) return;
+    }
+    rows.push({
+      docId: d.id,
+      key: x.key,
+      action: x.action,
+      field: x.field,
+      before: x.before,
+      after: x.after,
+      editor: x.editor,
+      ts: ts ? ts.toLocaleString() : ''
+    });
+  });
+  rows.sort((a,b)=>a.ts.localeCompare(b.ts));
+  console.table(rows);
+  console.log('총 '+rows.length+'건');
+  return rows;
+};
+
+// [2026-06-10] 디버그: erp_term_logs 의 (action, after) 값으로 erp_terminology 복구
+window.restoreFromLogs = async function(logs){
+  if(!Array.isArray(logs)) return 'logs 인자 필요';
+  const results = [];
+  for(const lg of logs){
+    if(!lg.key) continue;
+    if(lg.action === 'delete') continue;
+    if(!lg.after) continue;
+    const ref = doc(db, COL, lg.key);
+    const field = lg.field;
+    if(!['draft','final'].includes(field)) continue;
+    try{
+      const existing = await getDoc(ref);
+      const exData = existing.exists() ? existing.data() : {};
+      // 이미 값 있으면 skip
+      if(exData[field] && exData[field] === lg.after){
+        results.push({key: lg.key, field, status: 'already-set'});
+        continue;
+      }
+      const payload = {
+        updatedAt: serverTimestamp(),
+        updatedBy: '복원-로그'+(lg.editor?'('+lg.editor+')':''),
+        restored_from_log: true,
+      };
+      payload[field] = lg.after;
+      payload[field+'_by'] = lg.editor || '';
+      await setDoc(ref, payload, {merge:true});
+      results.push({key: lg.key, field, val: lg.after, status: 'OK'});
+    }catch(e){
+      results.push({key: lg.key, field, status: 'ERR', err: e.message});
+    }
+  }
+  console.table(results);
+  return results;
+};
+
 // [2026-06-05] 디버그: 편집자 작업 내역 조회 (콘솔에서 findEditorData('송기용') 호출)
 window.findEditorData = async function(editorName){
   const name = editorName || '송기용';
