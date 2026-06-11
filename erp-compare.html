@@ -1,4 +1,5 @@
 <!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ERP ↔ 가이드 v2 용어 비교</title>
 <style>
  body{font-family:"Malgun Gothic",sans-serif;color:#222;background:#eef1f5;margin:0;}
@@ -608,7 +609,8 @@ async function doSave(key, field, group, erp, value){
   try{
     const ref = doc(db, COL, key);
     const editor = getEditor();
-    const inputEl = document.querySelector(`input.dec[data-key="${key}"][data-field="${field}"]`);
+    // [2026-06-11] 키에 큰따옴표가 들어가면 selector 문법 오류로 그 행 저장이 전부 실패하던 버그 — keySel 과 동일하게 이스케이프
+    const inputEl = document.querySelector(`input.dec[data-key="${String(key).replace(/"/g,'\\"')}"][data-field="${String(field).replace(/"/g,'\\"')}"]`);
     const mp = inputEl?.dataset.mp || '';
     const before = lastSnap[key]?.[field] || '';
     const after = value.trim();
@@ -630,7 +632,7 @@ async function doSave(key, field, group, erp, value){
       action: after==='' ? 'delete' : (before==='' ? 'create' : 'update'),
       editor, ts: serverTimestamp()
     });
-    if(inputEl) inputEl.dataset.saved = '1';
+    if(inputEl){ inputEl.dataset.saved = '1'; delete inputEl.dataset.dirty; } // [2026-06-11] 저장 성공 시 dirty 해제
     journalRemove(key, field); // 저장 성공 → 저널 정리
     tick('☁️ 저장됨 ('+editor+')');
   }catch(e){ tick('⚠️ 저장실패: '+e.code); console.error(e); } // 실패 시 저널에 남아 다음 접속 때 복구
@@ -703,6 +705,7 @@ window.addEventListener('beforeunload', ()=>{
     const o = journalGet();
     document.querySelectorAll('input.dec').forEach(i=>{
       if(i.dataset.composing==='1') return; // [2026-06-10] 한글 조합 중인 미완성 글자는 저널에 넣지 않음 (정상 입력 경로와 동일 보호)
+      if(i.dataset.dirty!=='1') return; // [2026-06-11] 타이핑 없던 칸의 옛 화면값이 저널로 들어가 다음 접속 때 남의 값을 되덮는 사고 방지
       const k = i.dataset.key, f = i.dataset.field;
       if(!k || !f) return;
       const last = lastSnap[k]?.[f] || '';
@@ -782,15 +785,23 @@ function init(){
     i.addEventListener('compositionstart', ()=>{ i.dataset.composing='1'; });
     i.addEventListener('compositionend', ()=>{
       delete i.dataset.composing;
+      i.dataset.dirty='1'; // [2026-06-11] 실제 타이핑한 칸 표시 — blur 무조건 저장이 남의 새 값을 옛 값으로 되덮던 사고 방지
       saveCell(i.dataset.key, i.dataset.field, i.dataset.group, i.dataset.erp, i.value);
     });
     i.addEventListener('input', ()=>{
       if(i.dataset.composing==='1') return;
+      i.dataset.dirty='1';
       saveCell(i.dataset.key, i.dataset.field, i.dataset.group, i.dataset.erp, i.value);
     });
     // [2026-06-10] blur 시 즉시 저장 — debounce 2초 안에 사용자가 다른 칸 클릭 후 새로고침해도 손실 방지
     i.addEventListener('blur', ()=>{
       if(i.dataset.composing==='1') return;
+      // [2026-06-11] 타이핑 없이 포커스만 했다 나간 칸은 저장 안 함 — 포커스 중 다른 편집자가 저장한 값(lastSnap)으로 동기화만
+      if(i.dataset.dirty!=='1'){
+        const last = lastSnap[i.dataset.key]?.[i.dataset.field];
+        if(last!==undefined && i.value!==last) i.value = last;
+        return;
+      }
       flushSave(i.dataset.key, i.dataset.field, i.dataset.group, i.dataset.erp, i.value);
     });
   });
@@ -842,7 +853,7 @@ function init(){
       const k = i.dataset.key, f = i.dataset.field;
       const docData = m[k];
       const val = docData?.[f] || '';
-      if(document.activeElement!==i && i.value !== val) i.value = val;
+      if(document.activeElement!==i && i.value !== val){ i.value = val; delete i.dataset.dirty; } // [2026-06-11] 원격 값으로 동기화된 칸은 dirty 해제
       if(val){
         i.dataset.saved='1';
         const ck = k+'::'+f;                 // 흐름 복제로 같은 키가 여러 칸 → 고유 키만 카운트
@@ -860,7 +871,8 @@ function init(){
         const who = docData?.[f+'_by'] || '';
         const when = fmtDate(docData?.[f+'_at']);
         metaEl.className = 'meta ' + (f==='final'?'final':'');
-        metaEl.innerHTML = `<b>${who}</b> · ${when}`;
+        // [2026-06-11] 편집자명 이스케이프 — DB에 악성 문자열이 들어와도 스크립트 실행 차단
+        metaEl.innerHTML = `<b>${escapeHtml(who)}</b> · ${escapeHtml(when)}`;
       } else {
         metaEl.innerHTML=''; metaEl.className='meta';
       }
@@ -977,13 +989,13 @@ function init(){
             finally{ rBtn.disabled = false; }
           };
           rBtn.addEventListener('click', addReply);
-          rInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addReply(); } });
+          rInput.addEventListener('keydown', e=>{ if(e.isComposing || e.keyCode===229) return; if(e.key==='Enter'){ e.preventDefault(); addReply(); } }); // [2026-06-11] 한글 조합 확정 Enter 에 댓글이 조기 등록되던 문제
           wrap.appendChild(div);
         });
         wrap.scrollTop = wrap.scrollHeight;
       }
       box.querySelector('.badge').textContent = tops.length;
-    });
+    }, err=>{ tick('⚠️ 비고 동기화실패('+section+'): '+err.code); console.error(err); }); // [2026-06-11] 구독 실패가 조용히 빈 화면으로 남던 문제 — 다른 구독과 동일하게 표시
   });
 
   tick('☁️ Firebase 연결됨');
@@ -1265,6 +1277,8 @@ async function moveRowToSubgroup(tr, group, erp, oldKey, curSub, newSub){
 
     // 옛 subgroup 순서 배열에서도 제거
     try{ await removeFromOrder(group, curSub, erp, oldKey); }catch(_){}
+    // [2026-06-11] 새 subgroup 순서에 이동 행 포함해 저장 — 종전엔 미저장이라 새로고침마다 맨 위로 떠오름
+    try{ await persistOrder(group, newSub); }catch(e){ tick('⚠️ 이동 후 순서저장 실패: '+(e.code||e.message)); }
 
     await addDoc(collection(db,'erp_term_logs'), {
       key:newKey, group, erp, subgroup:newSub,
@@ -1281,15 +1295,23 @@ function wireInput(inp){
   inp.addEventListener('compositionstart', ()=>{ inp.dataset.composing='1'; });
   inp.addEventListener('compositionend', ()=>{
     delete inp.dataset.composing;
+    inp.dataset.dirty='1'; // [2026-06-11] 실제 타이핑한 칸 표시 (783행 핸들러와 동일 보호)
     saveCell(inp.dataset.key, inp.dataset.field, inp.dataset.group, inp.dataset.erp, inp.value);
   });
   inp.addEventListener('input', ()=>{
     if(inp.dataset.composing==='1') return;
+    inp.dataset.dirty='1';
     saveCell(inp.dataset.key, inp.dataset.field, inp.dataset.group, inp.dataset.erp, inp.value);
   });
   // [2026-06-10] blur 즉시 저장
   inp.addEventListener('blur', ()=>{
     if(inp.dataset.composing==='1') return;
+    // [2026-06-11] 타이핑 없이 포커스만 했다 나간 칸은 저장 안 함 — 남의 새 값 되덮기 방지
+    if(inp.dataset.dirty!=='1'){
+      const last = lastSnap[inp.dataset.key]?.[inp.dataset.field];
+      if(last!==undefined && inp.value!==last) inp.value = last;
+      return;
+    }
     flushSave(inp.dataset.key, inp.dataset.field, inp.dataset.group, inp.dataset.erp, inp.value);
   });
 }
@@ -1303,8 +1325,9 @@ function buildTermRow(group, erp, mp, custom, subgroup, keyOverride){
   if(subgroup) tr.dataset.subgroup = subgroup;
   const handle = '<span class="drag-handle" title="드래그해서 순서 변경">⋮⋮</span>';
   const customBtns = custom ? ' <span class="cust-tag">신규 항목</span> <button type="button" class="edit-row" title="이 신규 항목 수정">✏ 수정</button> <button type="button" class="del-row" title="이 신규 항목 삭제">🗑 삭제</button>' : '';
-  // stage(공정) 그룹에만 복사 버튼 — 후가공·포장 같이 여러 공정 흐름에서 같이 쓰는 행을 다른 소구분에 복사 (데이터는 자동 연동)
-  const copyBtn = (group === 'stage') ? ' <button type="button" class="copy-row" title="이 행을 다른 공정 흐름에 복사 — 값은 서로 자동 연동">↗</button>' : '';
+  // [2026-06-11] 복사(↗) 버튼 제거 — copy-row 시스템이 2026-06-05 비활성화(injectCopyButtons·renderCopies 차단)됐는데
+  //   신규 행에만 버튼이 남아, 누르면 DB 기록만 되고 화면엔 아무것도 안 나타나던 결함
+  const copyBtn = '';
   tr.dataset.rowKey = key;
   tr.innerHTML =
     '<td>'+handle+' '+e(erp)+customBtns+copyBtn+'</td>'+
@@ -1524,7 +1547,8 @@ async function editTerm(group, erp, tr){
       if(curFinal) payload.final = curFinal;
       await setDoc(doc(db, COL, oldKey), payload, {merge:true});
     }
-    await addDoc(collection(db,'erp_term_logs'), { key:oldKey, group, erp, subgroup:sub, field:'(행수정)', before:JSON.stringify({erp,mp:oldMp}), after:JSON.stringify({erp:newErp,mp:newMp}), action:'edit-term', editor:getEditor(), ts: serverTimestamp() });
+    // [2026-06-11] newKey 도 기록 — UNDO 가 키를 재조립하다 stage 소구분·unique suffix 를 놓치고 유령 doc 을 만들던 버그의 근거 데이터
+    await addDoc(collection(db,'erp_term_logs'), { key:oldKey, newKey, group, erp, subgroup:sub, field:'(행수정)', before:JSON.stringify({erp,mp:oldMp}), after:JSON.stringify({erp:newErp,mp:newMp}), action:'edit-term', editor:getEditor(), ts: serverTimestamp() });
     // [2026-06-10] 수정 후 현재 DOM 순서 저장 — 새로고침 후 위치 보존
     try{ await persistOrder(group, sub); }catch(_){}
     tick('✏ 신규 항목 수정: '+erp+(renamed?' → '+newErp:''));
@@ -1750,7 +1774,30 @@ function applyOrder(group, subgroup, order, orderKeys){
       const re = getRowErp(row); if(re && byErp[re]===row) delete byErp[re];
     }
   }
-  // 저장 순서에 없는 행은 그 뒤에 자연스럽게 남음 (이미 그 위치)
+  // [2026-06-11] 순서 문서에 매칭 안 된 잔여 행(신규 추가·순서 누락분)은 종전엔 소구분 맨 위에 남아
+  //   새로고침마다 위로 떠오르는 버그가 있었음 — 저장된 순서 뒤(블록 끝)로 같이 이동해 위치 고정
+  let rest = sep.nextElementSibling;
+  while(rest && rest!==nextSep){
+    if(rest.classList.contains('actions-row')){ rest = rest.nextElementSibling; continue; }
+    const rk = getRowKey(rest);
+    const re = getRowErp(rest);
+    const unmatched = (rk && byKey[rk]===rest) || (!rk && re && byErp[re]===rest);
+    if(!unmatched){ rest = rest.nextElementSibling; continue; }
+    let ar = rest.nextElementSibling && rest.nextElementSibling.classList && rest.nextElementSibling.classList.contains('actions-row') ? rest.nextElementSibling : null;
+    if(!ar && rk) ar = table.querySelector('tr.actions-row[data-row-key="'+rk.replace(/"/g,'\\"')+'"]');
+    const nxt = (ar && ar===rest.nextElementSibling) ? ar.nextElementSibling : rest.nextElementSibling;
+    if(nextSep){
+      nextSep.parentNode.insertBefore(rest, nextSep);
+      if(ar) nextSep.parentNode.insertBefore(ar, nextSep);
+    } else {
+      const tbody = table.tBodies[0]||table;
+      tbody.appendChild(rest);
+      if(ar) tbody.appendChild(ar);
+    }
+    if(rk) delete byKey[rk];
+    if(re && byErp[re]===rest) delete byErp[re];
+    rest = nxt;
+  }
 }
 // [2026-06-08] key 인자 추가 — key 주면 key 기준 제거 (같은 erp가 여러 개여도 정확히 1행만), 없으면 erp 기준 (legacy)
 async function removeFromOrder(group, subgroup, erp, key){
@@ -1990,12 +2037,14 @@ async function saveRationale(key, group, erp, text){
     return;
   }
   // 트랜잭션 성공 — 로그 별도 추가
-  await addDoc(collection(db,'erp_term_logs'), {
-    key, group, erp, field:'(사유)',
-    before, after,
-    action: after==='' ? 'rationale-clear' : (before==='' ? 'rationale-create' : 'rationale-update'),
-    editor, ts: serverTimestamp()
-  });
+  try{ // [2026-06-11] 로그 기록 실패가 무음으로 사라지던 문제 (debounce setTimeout 컨텍스트라 unhandled rejection)
+    await addDoc(collection(db,'erp_term_logs'), {
+      key, group, erp, field:'(사유)',
+      before, after,
+      action: after==='' ? 'rationale-clear' : (before==='' ? 'rationale-create' : 'rationale-update'),
+      editor, ts: serverTimestamp()
+    });
+  }catch(e){ tick('⚠️ 사유 로그 기록실패: '+(e.code||e.message)); console.error(e); }
   tick('📝 사유 저장: '+erp);
 }
 
@@ -2051,7 +2100,6 @@ function applyMetaActionsForDoc(key, data){
   });
 }
 
-function cssEscape(s){ return String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"'); }
 // 안전한 dataset 비교 (selector escape 문제 회피)
 function forEachByData(selector, dataKey, dataVal, fn){
   document.querySelectorAll(selector).forEach(el=>{
@@ -2225,6 +2273,7 @@ function injectCopyButtons(){
 // 주입용 CSV (ERP·상품DB·챗봇 일괄 처리용)
 // [2026-06-10] 시스템 영문 표기(헤더·분류·상태·반영처)는 국문으로 출력. 제품·장비·재질 기술명(UV·DTF·ZUND 등)은 실제 데이터라 원본 유지.
 window.exportCSVInjection = async function(){
+  try{ // [2026-06-11] 실패가 무반응으로 끝나던 문제 — undoLast 와 동일하게 사용자에게 표시
   const snap = await getDocs(collection(db, COL));
   // [2026-06-10] getDocs(문서 ID 순) 대신 화면 DOM 순서대로 출력 — 작업 상태(드래그·소구분 정렬) 그대로 반영
   const byId = {};
@@ -2276,6 +2325,7 @@ window.exportCSVInjection = async function(){
   a.href = URL.createObjectURL(blob);
   a.download = 'ERP_용어_주입용_'+new Date().toISOString().slice(0,10)+'.csv';
   a.click();
+  }catch(e){ alert('주입용 CSV 내보내기 실패: '+(e.code||e.message||e)); console.error(e); }
 };
 
 /* ===== v4 (2026-06-04): 소구분 자체 드래그앤드롭 + UNDO 20회 ===== */
@@ -2396,6 +2446,9 @@ function applySubgroupOrder(group, order){
 }
 
 /* ===== UNDO 시스템 ===== */
+// [2026-06-11] reverseLog 가 실제 지원하는 액션 목록 — 미지원 액션(사유저장·분류이동·복사 등)이 최신 로그일 때
+//   되돌리기가 throw 하며 고아 undo-claim 이 쌓여 되돌리기 전체가 영구히 막히던 루프 차단
+const UNDOABLE_ACTIONS = new Set(['create','update','delete','add-term','del-term','edit-term','confirm','unconfirm','deploy','undeploy','reorder','reorder-subgroup']);
 async function getNextUndoable(){
   const q = query(collection(db,'erp_term_logs'), orderBy('ts','desc'), limit(60));
   const snap = await getDocs(q);
@@ -2404,7 +2457,8 @@ async function getNextUndoable(){
   const undoneIds = new Set();
   logs.forEach(l => { if(l.action==='undo' && l.undoOf) undoneIds.add(l.undoOf); });
   for(const l of logs){
-    if(l.action==='undo') continue;
+    if(l.action==='undo' || l.action==='undo-claim') continue;
+    if(!UNDOABLE_ACTIONS.has(l.action)) continue;
     if(undoneIds.has(l.id)) continue;
     return l;
   }
@@ -2448,9 +2502,15 @@ window.undoLast = async function(){
       alert('이미 다른 편집자가 같은 변경을 되돌리는 중입니다. 잠시 후 새로고침 후 다시 시도해 주세요.');
       return;
     }
-    await reverseLog(target);
-    // claim 로그를 정식 undo 로그로 마감
-    await setDoc(undoLogRef, { action:'undo', undoOf: target.id, undoTargetAction: target.action, editor: currentEditor, ts: serverTimestamp() }, {merge:false});
+    try{
+      await reverseLog(target);
+      // claim 로그를 정식 undo 로그로 마감
+      await setDoc(undoLogRef, { action:'undo', undoOf: target.id, undoTargetAction: target.action, editor: currentEditor, ts: serverTimestamp() }, {merge:false});
+    }catch(e){
+      // [2026-06-11] 실패 시 claim 즉시 정리 — 고아 undo-claim 이 남아 다음 되돌리기를 막던 버그
+      try{ await deleteDoc(undoLogRef); }catch(_){}
+      throw e;
+    }
     tick('↩ 되돌림: '+desc);
   }catch(e){
     tick('⚠️ 되돌리기실패: '+(e.code||e.message));
@@ -2548,29 +2608,33 @@ async function reverseLog(log){
     const before = JSON.parse(log.before||'{}');
     const after = JSON.parse(log.after||'{}');
     const sub = log.subgroup||'';
-    const newKeyAfter = log.group+'::'+after.erp;
-    const oldKeyBefore = log.group+'::'+before.erp;
+    // [2026-06-11] 종전엔 'group::erp' 2단 키를 재조립해 stage 소구분·unique suffix 를 놓침 —
+    //   유령 doc 생성 + 엉뚱한 doc 삭제(복구원본 legacy doc 포함) 버그. 로그에 기록된 실제 키를 그대로 사용.
+    const oldKeyBefore = log.key || (log.group+'::'+before.erp);
+    const newKeyAfter = log.newKey || termKey(log.group, sub, after.erp);
     const renamed = (before.erp !== after.erp);
     if(renamed){
       const oldDoc = await getDoc(doc(db, COL, newKeyAfter));
-      const data = oldDoc.exists() ? oldDoc.data() : { group:log.group, custom:true };
+      // [2026-06-11] 대상 doc 이 없으면 중단 — 잘못된 키로 빈 데이터 유령 doc 을 만드는 사고 차단 (newKey 없는 옛 로그 보호)
+      if(!oldDoc.exists()) throw new Error('되돌릴 대상 문서를 찾지 못했습니다: '+newKeyAfter);
+      const data = oldDoc.data();
       const merged = Object.assign({}, data, { group:log.group, erp:before.erp, mp:before.mp||'', subgroup:sub, custom:true, updatedAt: serverTimestamp(), updatedBy: editor });
       await setDoc(doc(db, COL, oldKeyBefore), merged);
       await deleteDoc(doc(db, COL, newKeyAfter));
-      try{ await renameInOrder(log.group, sub, after.erp, before.erp); }catch(_){}
+      try{ await renameInOrder(log.group, sub, after.erp, before.erp, newKeyAfter, oldKeyBefore); }catch(_){}
       const tr = (document.querySelector(keySel(newKeyAfter))||{}).closest ? document.querySelector(keySel(newKeyAfter)).closest('tr') : null;
       if(tr){
         const isCustom = tr.classList.contains('custom-row');
-        const newRow = buildTermRow(log.group, before.erp, before.mp||'', isCustom, sub);
+        const newRow = buildTermRow(log.group, before.erp, before.mp||'', isCustom, sub, oldKeyBefore);
         const oldAr = tr.nextElementSibling;
         if(oldAr && oldAr.classList && oldAr.classList.contains('actions-row')) oldAr.parentNode.removeChild(oldAr);
         tr.parentNode.replaceChild(newRow, tr);
-        appendActionsRow(newRow, log.group+'::'+before.erp, log.group, before.erp, isCustom);
+        appendActionsRow(newRow, oldKeyBefore, log.group, before.erp, isCustom);
       }
     } else {
       await setDoc(doc(db, COL, newKeyAfter), { mp:before.mp||'', updatedAt: serverTimestamp(), updatedBy: editor }, {merge:true});
     }
-    Object.assign(reverse, { key:log.key, group:log.group, erp:before.erp, subgroup:sub });
+    Object.assign(reverse, { key:oldKeyBefore, group:log.group, erp:before.erp, subgroup:sub });
   }
   else if(log.action==='reorder'){
     const beforeOrder = Array.isArray(log.beforeOrder) ? log.beforeOrder : [];
@@ -2606,6 +2670,8 @@ function validateTermName(s){
   for(var i=0;i<s.length;i++){
     var c = s.charCodeAt(i);
     if(c < 32 || c === 127){ alert('이름에 줄바꿈·탭·제어문자는 쓸 수 없습니다.'); return false; }
+    // [2026-06-11] NBSP·전각공백 거부 — 보기엔 같은 이름이 다른 doc id 로 공존하는 키 위생 구멍 차단
+    if(c === 160 || c === 0x3000){ alert('이름에 특수 공백(붙여넣기 등으로 들어온 NBSP·전각공백)이 있습니다. 일반 공백으로 바꿔주세요.'); return false; }
   }
   if(s.indexOf('/') >= 0 || s.indexOf('\\') >= 0){ alert('이름에 "/" "\\" 는 쓸 수 없습니다.'); return false; }
   if(s.length >= 2 && s.charAt(0) === '_' && s.charAt(1) === '_'){ alert('이름은 "__" 로 시작할 수 없습니다 (시스템 예약).'); return false; }
@@ -2620,9 +2686,21 @@ function renderOrphanRows(m){
     if(!d || !d.group || !GROUP_LABEL[d.group]) return;
     if(document.querySelector(keySel(key))) return;
     // [2026-06-05] stage 그룹의 잉여 doc(어제 자동 마이그·copy 잔재) — 같은 erp 가 정적 행에 이미 있으면 orphan 으로 그리지 않음. Firestore 데이터는 보존, DOM 표시만 흡수해 사용자 화면 정리.
-    if(d.group === 'stage' && d.erp){
+    // [2026-06-11] 흡수 조건 정밀화 — 종전엔 표 어디든 같은 erp(포장·후가공 등 7회 반복)가 있으면
+    //   다른 소구분에 새로 추가한 행('없음' suffix 행 포함)까지 새로고침 후 미표시되던 버그(실측 27행 소실).
+    //   · 옛 2단 키(stage::erp, 마이그 잔재·복구원본)는 종전 규칙 유지: 같은 erp 가 어디든 있으면 흡수
+    //   · 3단 키(현행)·custom doc 은 '같은 소구분'에 같은 erp 가 있을 때만 흡수
+    if(d.group === 'stage' && d.erp && !d.custom){
       const erpSel = 'input.dec[data-group="stage"][data-erp="'+String(d.erp).replace(/"/g,'\\"')+'"]';
-      if(document.querySelector(erpSel)) return;
+      if(String(key).split('::').length === 2){
+        if(document.querySelector(erpSel)) return;
+      } else {
+        const absorbed = Array.from(document.querySelectorAll(erpSel)).some(inp=>{
+          const tr = inp.closest('tr');
+          return tr && (tr.dataset.subgroup || getRowSubgroup(tr) || '') === (d.subgroup||'');
+        });
+        if(absorbed) return;
+      }
     }
     const table = document.querySelector('table[data-group="'+d.group+'"]');
     if(!table) return;
@@ -2634,6 +2712,7 @@ function renderOrphanRows(m){
 }
 
 window.exportCSV = async function(){
+  try{ // [2026-06-11] 실패가 무반응으로 끝나던 문제 — 사용자에게 표시
   const snap = await getDocs(collection(db, COL));
   const head = ['분류','구분','소분류','ERP명칭','1차 수정안','1차 편집자','1차 시각','최종 협의안','최종 편집자','최종 시각','전체동의','동의자','동의시각','상태','사유','사유 작성자'];
   DOWNSTREAM_TARGETS.forEach(t => head.push('반영-'+t.short));
@@ -2669,6 +2748,7 @@ window.exportCSV = async function(){
   a.href = URL.createObjectURL(blob);
   a.download = 'ERP_용어_회의록_'+new Date().toISOString().slice(0,10)+'.csv';
   a.click();
+  }catch(e){ alert('회의록 CSV 내보내기 실패: '+(e.code||e.message||e)); console.error(e); }
 };
 
 // [2026-06-03 보안] 전역 clearAll(전체 삭제) 함수 제거 — 콘솔에서 누구나 전체 삭제 가능했던 위험 제거.
@@ -2835,7 +2915,7 @@ function applyMissingRowStyle(tr, d){
     tr.style.background = '#f0f7ff';
     if(addBtn){ addBtn.style.background = '#888'; addBtn.textContent = '✓ 규칙에 등재됨'; addBtn.disabled = true; }
     if(delBtn){ delBtn.style.display = ''; }
-    if(tag){ tag.innerHTML = '<span style="color:#2c5b9c;font-weight:600;">→ 재질·'+(d.target_subgroup||'')+'</span><br><span style="color:#666;font-size:10.5px;">'+(d.addedName||'')+' / '+(d.added_by||'')+'</span>'; }
+    if(tag){ tag.innerHTML = '<span style="color:#2c5b9c;font-weight:600;">→ 재질·'+escapeHtml(d.target_subgroup||'')+'</span><br><span style="color:#666;font-size:10.5px;">'+escapeHtml(d.addedName||'')+' / '+escapeHtml(d.added_by||'')+'</span>'; } // [2026-06-11] 사용자 입력 이스케이프 — 스크립트 주입 차단
   } else {
     // pending
     tr.style.background = '';
@@ -3134,6 +3214,8 @@ window.findEditorData = async function(editorName){
 window.addEventListener('beforeunload', (e)=>{
   let dirty = false;
   document.querySelectorAll('input.dec').forEach(i=>{
+    if(i.dataset.composing==='1') return; // [2026-06-11] 한글 조합 중 미완성 글자 저장 방지 (705행 저널 보호와 동일)
+    if(i.dataset.dirty!=='1') return;     // [2026-06-11] 타이핑 없던 칸의 옛 화면값 flush 방지
     if(i.value && i.dataset.saved !== '1'){
       dirty = true;
       try{ flushSave(i.dataset.key, i.dataset.field, i.dataset.group, i.dataset.erp, i.value); }catch(_){}
