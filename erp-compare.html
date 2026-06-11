@@ -2492,17 +2492,25 @@ window.undoLast = async function(){
       return true;
     });
     if(!claimed){ alert('이미 다른 편집자가 처리 중입니다. 잠시 후 다시 시도해 주세요.'); return; }
-    // 중복 claim 검사 — claim 후 같은 undoOf 로 더 빠른 claim 이 이미 있으면 양보
-    const existingClaim = await getDocs(query(collection(db,'erp_term_logs'), where('undoOf','==',target.id), orderBy('ts','asc'), limit(2)));
-    let firstClaimId = '';
-    existingClaim.forEach(d=>{ if(!firstClaimId) firstClaimId = d.id; });
-    if(firstClaimId && firstClaimId !== undoLogRef.id){
-      // 다른 사람이 먼저 claim 했으면 본인 claim 취소
-      await deleteDoc(undoLogRef);
-      alert('이미 다른 편집자가 같은 변경을 되돌리는 중입니다. 잠시 후 새로고침 후 다시 시도해 주세요.');
-      return;
-    }
     try{
+      // [2026-06-11] 중복 claim 검사 — 종전 where+orderBy 조합이 복합 색인을 요구해 failed-precondition 으로
+      //   되돌리기 전체가 실패하던 버그(잠복 결함). 동등조건만 조회 후 클라이언트 정렬.
+      //   2분 넘게 마감 안 된 claim 은 과거 실패의 고아 잔재로 보고 경합 판정에서 제외(영구 차단 방지).
+      const existingClaim = await getDocs(query(collection(db,'erp_term_logs'), where('undoOf','==',target.id)));
+      const claims = [];
+      existingClaim.forEach(d=>{
+        const x = d.data();
+        if(x.action==='undo-claim') claims.push({ id:d.id, ms:(x.ts && x.ts.toMillis) ? x.ts.toMillis() : Number.MAX_SAFE_INTEGER });
+      });
+      const fresh = claims.filter(c=> c.id===undoLogRef.id || (Date.now()-c.ms) < 120000);
+      fresh.sort((a,b)=> (a.ms-b.ms) || (a.id<b.id ? -1 : 1));
+      const firstClaimId = fresh.length ? fresh[0].id : '';
+      if(firstClaimId && firstClaimId !== undoLogRef.id){
+        // 다른 사람이 먼저 claim 했으면 본인 claim 취소
+        await deleteDoc(undoLogRef);
+        alert('이미 다른 편집자가 같은 변경을 되돌리는 중입니다. 잠시 후 새로고침 후 다시 시도해 주세요.');
+        return;
+      }
       await reverseLog(target);
       // claim 로그를 정식 undo 로그로 마감
       await setDoc(undoLogRef, { action:'undo', undoOf: target.id, undoTargetAction: target.action, editor: currentEditor, ts: serverTimestamp() }, {merge:false});
